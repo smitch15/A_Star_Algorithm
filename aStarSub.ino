@@ -1,4 +1,4 @@
-BSTACLE_SIZE 3
+#define OBSTACLE_SIZE 3
 
 class Node{
  public:
@@ -28,16 +28,14 @@ void setup() {
     }
   }
   Serial.print('c');
-  // setup the startNode 
-  Node startNode;
   
   // set start node g cost to zero
-  startNode.gCost = 0;
+  graph[srcXandY[0]][srcXandY[1]].gCost = 0;
   // set heuristic value of start node
-  startNode.hCost = abs((srcXandY[0] - destXandY[0])) + abs((srcXandY[1] - destXandY[1]));
+  graph[srcXandY[0]][srcXandY[1]].hCost = abs((srcXandY[0] - destXandY[0])) + abs((srcXandY[1] - destXandY[1]));
   
   // put the startnode in the queue, set the source node bit
-  startNode.infoBits |= 0b10001010; 
+  graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b10001010; 
     
   // set the info bit for known node obstacles
   for (byte i = 0; i < OBSTACLE_SIZE; i++){
@@ -47,6 +45,9 @@ void setup() {
   // set the destination node bits
   graph[destXandY[0]][destXandY[1]].infoBits |= 0b1001;
 
+  // set the in queue bit for the start node
+  graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b10000000;
+  
   // start A star algorithm
   // setup
   bool queueEmpty = true;
@@ -86,13 +87,18 @@ void setup() {
       byte sourceXY = (srcXandY[0] << 4) & srcXandY[1];
       byte num = 0;
       while (current.parentXY != sourceXY){
+        Serial.println("curent's parent: ");
+        Serial.println(current.parentXY);
+        Serial.println("source xy: ");
+        Serial.println(sourceXY);
         current.infoBits &= 0b1000;
         current = graph[current.parentXY >> 4][current.parentXY & 0b1111];
         Serial.println("node num "); Serial.println(num);
         Serial.println("path x, y"); Serial.println(current.parentXY >> 4); Serial.println(current.parentXY & 0b1111);
         num++;
+        
       }
-      
+      return;
     }
     
     // remove min score from queue
@@ -163,5 +169,4 @@ void setup() {
 
 
 void loop(){}
-
 
