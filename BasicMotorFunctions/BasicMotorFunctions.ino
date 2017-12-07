@@ -56,7 +56,8 @@ void setup() {
   /*for(int i = 0; i < 4; i++){
     goForward();
     turnLeft();
-  }*/
+  }
+  */
 }
 
 void loop() {
@@ -64,7 +65,7 @@ void loop() {
 
 //Turn 90 degrees right
 void turnRight(){
-  for(int i = 0; i < 215; i++){
+  for(int i = 0; i < 210; i++){
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
     delayMicroseconds(150);
@@ -73,7 +74,7 @@ void turnRight(){
 
 //TUrn 90 degrees left
 void turnLeft(){
-  for(int i = 0; i < 215; i++){
+  for(int i = 0; i < 210; i++){
     leftMotor->step(1, BACKWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(150);
