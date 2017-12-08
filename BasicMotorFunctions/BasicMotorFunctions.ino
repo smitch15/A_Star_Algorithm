@@ -1,18 +1,19 @@
-/*
-This is a test sketch for the Adafruit assembled Motor Shield for Arduino v2
-It won't work with v1.x motor shields! Only for the v2's with built in PWM
-control
-
-For use with the Adafruit Motor Shield v2 
----->  http://www.adafruit.com/products/1438
-*/
-
-
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
+#include <MultiStepper.h>
 #include <AccelStepper.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 #include <Servo.h>
+
+//Define pins
+#define LED1PIN 2
+#define LED2PIN 3
+#define SERVOPIN 4
+#define ULTRASONICPIN 5
+#define PHOTOPIN 0
 
 // Create the motor shield object with default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
@@ -27,7 +28,10 @@ void turnRight();
 void doA180();
 void goForward();
 void goBackward();
-void sweepServo(Servo servo);
+//void sweepServo(Servo servo); //Temporarily obsolete, keep for P2
+bool checkForObstacles(int ultraSonicPin);
+int ultrasonicDistance(int ultraSonicPin);
+int checkForDestination(int photoPin);
 
 //Servo motor setup
 int pos = 0;
@@ -43,24 +47,37 @@ void setup() {
   rightMotor->setSpeed(100);
 
   //Turn on LEDs
-  pinMode(2, OUTPUT);
-  pinMode(3, OUTPUT);
-  digitalWrite(2, HIGH);
-  digitalWrite(3, HIGH);
+  pinMode(LED1PIN, OUTPUT);
+  pinMode(LED2PIN, OUTPUT);
+  digitalWrite(LED1PIN, HIGH);
+  digitalWrite(LED2PIN, HIGH);
 
   //Set up servo motor
-  //servo.attach(4);
+  servo.attach(SERVOPIN);
 
-  sweepServo(servo);
+  //Set up ultrasonic
+  pinMode(ULTRASONICPIN, OUTPUT);
 
-  /*for(int i = 0; i < 4; i++){
-    goForward();
-    turnLeft();
-  }
-  */
+  //Debug REMOVE ME
+  //while(1);
 }
 
-void loop() {
+void loop(){
+  Serial.println(analogRead(PHOTOPIN));
+  delay(500);
+  /* //"Wander protocol"
+  if(checkForObstacles(ULTRASONICPIN)){
+    srand(micros());
+    if((rand() % 2) == 0){
+      turnLeft();
+    }
+    else{
+      turnRight();
+    }
+  }
+  if(!checkForObstacles(ULTRASONICPIN)){
+    goForward();
+  }*/
 }
 
 //Turn 90 degrees right
@@ -105,8 +122,8 @@ void goBackward(){
   }
 }
 
-
-//Sweep servo motor from 45 to 135 and back
+//Temporarily obsolete, keep for robot project 2
+/*//Sweep servo motor from 45 to 135 and back
 void sweepServo(Servo servo){
   servo.write(90);
   for(pos = 90; pos <= 135; pos++){
@@ -121,5 +138,53 @@ void sweepServo(Servo servo){
     servo.write(pos);
     delay(30);
   }
+}*/
+
+bool checkForObstacles(int ultraSonicPin){
+  int i = 0;
+  servo.write(90);
+  if(ultrasonicDistance(ULTRASONICPIN) < 13){
+      i++;
+  }
+  for(pos = 90; pos <= 115; pos++){
+    servo.write(pos);
+    delay(30);
+  }
+  if(ultrasonicDistance(ULTRASONICPIN) <= 13){
+      i++;
+  }
+  for(pos = 115; pos >= 65; pos--){
+    servo.write(pos);
+    delay(30);
+  }
+  if(ultrasonicDistance(ULTRASONICPIN) <= 13){
+      i++;
+  }
+  for(pos = 65; pos <= 90; pos++){
+    servo.write(pos);
+    delay(30);
+  }
+  bool found = false;
+  if(i > 1){
+    found = true;
+  }
+  return found;
+}
+
+int ultrasonicDistance(int ultraSonicPin){
+  pinMode(ultraSonicPin, OUTPUT);
+  digitalWrite(ultraSonicPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ultraSonicPin, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(ultraSonicPin, LOW);
+  pinMode(ultraSonicPin, INPUT);
+  int duration = pulseIn(ultraSonicPin, HIGH);
+  return duration / 74 / 2;
+}
+
+
+int checkForDestination(int photoPin){
+  
 }
 
