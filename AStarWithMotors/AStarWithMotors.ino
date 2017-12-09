@@ -25,10 +25,9 @@ void doA180();
 void goForward();
 void goBackward();
 //void sweepServo(Servo servo); //Temporarily obsolete, keep for P2
-bool checkForObstacles(int ultraSonicPin);
-int ultrasonicDistance(int ultraSonicPin);
-int checkForDestination(int photoPin);
-
+bool checkForObstacles();
+int ultrasonicDistance();
+bool checkForDestination();
 
 class Node{
  public:
@@ -43,10 +42,12 @@ Node graph[16][16];
 //Servo motor setup
 Servo servo;
 
+//Set source and destination
 const PROGMEM uint8_t srcXandY[] = {0,0};
 const PROGMEM uint8_t destXandY[] = {10,15};
 
-int inPath[255];
+//Array for x,y of nodes in path
+byte inPath[255];
 
 // Create the motor shield object with default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
@@ -89,7 +90,9 @@ void setup() {
   Serial.println("INIT");
   Serial.print(num); Serial.println(" nodes in path");
   aStar();
+}
 
+void loop() {
   Serial.println("AFTER A STAR");
   Serial.println("in path coords.");
   for (int k = 0; k < 255; k++){
@@ -185,29 +188,27 @@ void setup() {
           initDir = 2;
         }
     }
-
+    if(checkForObstacles()){
+      //Add the obstacle
+      //Reset the graph
+      aStar();
+    }
+    else{
+      goForward();
+      if(checkForDestination()){
+        Serial.println("Arrived at destination!");
+        while(1);
+      }
+    }
   }
-
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-
 }
 
 
 
 void aStar() {
-//  Serial.begin(9600);
-//  Serial.print('a');
   // obstacle X's and Y's 
   const PROGMEM uint8_t obstacleX[] = {0};
   const PROGMEM uint8_t obstacleY[] = {5};
-
-
-//  Node graph[16][16];
- 
-//  Serial.print('b');
   
   // set all g and h costs of each node in graph to infinity(255)
   for (byte i = 0; i < 16; i++){
@@ -216,7 +217,6 @@ void aStar() {
         graph[i][j].hCost = 255;
     }
   }
-//  Serial.print('c');
   
   // set start node g cost to zero
   graph[srcXandY[0]][srcXandY[1]].gCost = 0;
@@ -224,8 +224,6 @@ void aStar() {
   // set heuristic value of start node
   graph[srcXandY[0]][srcXandY[1]].hCost = abs((destXandY[0] - srcXandY[0])) + abs((destXandY[1] - srcXandY[1]));
 
-//  Serial.println(graph[srcXandY[0]][srcXandY[1]].hCost);
-//  while(1){}
   // put the startnode in the queue, set the source node bit
   graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b10001010; 
     
@@ -241,7 +239,6 @@ void aStar() {
   graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b10000000;
   // set source's parent x y to itself
   graph[srcXandY[0]][srcXandY[1]].parentXY = (srcXandY[0] << 4) | srcXandY[1];
-//  Serial.println(graph[srcXandY[0]][srcXandY[1]].parentXY);
   // set direction bit of source (started out facing east)
   graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b010000;
 
@@ -257,11 +254,9 @@ void aStar() {
       }
     }
   }
-//  Serial.print('d');
   
   // algorithm start
   while (!queueEmpty){
-//    Serial.print('e');
     Node *current;
     uint16_t minScore = 510;
     byte xMin, yMin = 17;
@@ -272,33 +267,16 @@ void aStar() {
           xMin = i; 
           yMin = j;
           current = &graph[i][j];
-//          Serial.print("c----");
-//          Serial.println(current->parentXY);
           minScore = current->hCost + current->gCost;
         }
       }
     }
-//    Serial.println();
-//    Serial.print("xMin: ");
-//    Serial.println(xMin);
-//    
-//    
-//    Serial.print("yMin: ");
-//    Serial.println(yMin);
-//    Serial.println();
-//    
     if (current->infoBits & 0b1){ // if current is destination
-//      Serial.println(srcXandY[0] << 4);
-//      Serial.println(srcXandY[1]);
       byte sourceXY = (srcXandY[0] << 4) | srcXandY[1];
-//      byte num = 0;
-//      current->infoBits |= 0b1000; // add to path
       Serial.println();
 
       Serial.println();
       Serial.println("Found Destination Node");
-//      Serial.print("Source XY = ");
-//      Serial.println(sourceXY);
       Serial.println(); 
       byte count = 0;
       byte index = 3; 
@@ -385,9 +363,6 @@ void aStar() {
       if (!(nebArr[i]->infoBits & 0b10000000)) 
         nebArr[i]->infoBits |= 0b10000000; // add to queue
       
-//      Serial.print("d----");
-//      Serial.println(current->parentXY);
-      
       // update direction bits
       // define the cost of each neighbor
       switch (((current->infoBits & 0b110000) ^ (nebArr[i]->infoBits & 0b110000)) >> 4){
@@ -415,7 +390,6 @@ void aStar() {
       
       nebArr[i]->gCost = tent_cost;
       nebArr[i]->hCost = abs(destXandY[0] - xMin) + abs(destXandY[1] - yMin) -1;
-//      Serial.println("yo");
      
     }
 
@@ -491,24 +465,24 @@ void sweepServo(Servo servo){
   }
 }*/
 
-bool checkForObstacles(int ultraSonicPin){
+bool checkForObstacles(){
   int detected = 0;
   servo.write(90);
-  if(ultrasonicDistance(ULTRASONICPIN) < 13){
+  if(ultrasonicDistance() < 13){
       detected++;
   }
   for(int pos = 90; pos <= 115; pos++){
     servo.write(pos);
     delay(30);
   }
-  if(ultrasonicDistance(ULTRASONICPIN) <= 13){
+  if(ultrasonicDistance() <= 13){
       detected++;
   }
   for(int pos = 115; pos >= 65; pos--){
     servo.write(pos);
     delay(30);
   }
-  if(ultrasonicDistance(ULTRASONICPIN) <= 13){
+  if(ultrasonicDistance() <= 13){
       detected++;
   }
   for(int pos = 65; pos <= 90; pos++){
@@ -522,18 +496,18 @@ bool checkForObstacles(int ultraSonicPin){
   return found;
 }
 
-int ultrasonicDistance(int ultraSonicPin){
-  pinMode(ultraSonicPin, OUTPUT);
-  digitalWrite(ultraSonicPin, LOW);
+int ultrasonicDistance(){
+  pinMode(ULTRASONICPIN, OUTPUT);
+  digitalWrite(ULTRASONICPIN, LOW);
   delayMicroseconds(2);
-  digitalWrite(ultraSonicPin, HIGH);
+  digitalWrite(ULTRASONICPIN, HIGH);
   delayMicroseconds(5);
-  digitalWrite(ultraSonicPin, LOW);
-  pinMode(ultraSonicPin, INPUT);
-  return pulseIn(ultraSonicPin, HIGH) / 74 / 2;
+  digitalWrite(ULTRASONICPIN, LOW);
+  pinMode(ULTRASONICPIN, INPUT);
+  return pulseIn(ULTRASONICPIN, HIGH) / 74 / 2;
 }
 
 
-int checkForDestination(int photoPin){
-  
+bool checkForDestination(){
+  return false;
 }
