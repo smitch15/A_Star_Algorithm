@@ -29,12 +29,22 @@ bool checkForObstacles();
 int ultrasonicDistance();
 bool checkForDestination();
 
+//Class for keeping track of nodes in graph
 class Node{
  public:
   byte parentXY;
   byte hCost;
   byte gCost;
   byte infoBits = 0;
+  /*Info bits is used as follows:
+      -infoBits[0] = If node is currently in the queue
+      -infoBits[1] = If node has been through the queue yet
+      -infoBits<2:3> = Direction of next node in path
+      -infoBits[4] = If node is in path
+      -infoBits[5] = If node is obstacle
+      -infoBits[6] = If node is source
+      -infoBits[7] = If node is destination
+   */
 };
 
 //Initialize graph
@@ -49,6 +59,9 @@ byte destXandY[] = {0,2};
 
 //Array for x,y of nodes in path
 byte inPath[255];
+
+//Holds direction relative to graph. 0 = N, 1 = E, 2 = S, 3 = W
+byte initDir = 0;
 
 // Create the motor shield object with default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
@@ -76,25 +89,27 @@ void setup() {
 
   //Set up servo motor
   servo.attach(SERVOPIN);
+  servo.write(90);
 
   //Set up ultrasonic
   pinMode(ULTRASONICPIN, OUTPUT);
 
 //  int num = 0;
-//  for (int i = 0; i<16; i++){
-//     for (int j = 0; j < 16; j++){
-//        if (graph[i][j].infoBits &1000){
+//  for(int i = 0; i < 16; i++){
+//     for(int j = 0; j < 16; j++){
+//        if (graph[i][j].infoBits & 1000){
 //          num++;
 //        }
 //      }
 //   }
-  
-//  Serial.println("INIT");
-//  Serial.print(num); Serial.println(" nodes in path");
+
+  //Build path with A*
   aStar();
 }
 
 void loop() {
+
+  //Debug
   Serial.println("AFTER A STAR");
   Serial.println("in path coords.");
   for (int k = 0; k < 255; k++){
@@ -103,12 +118,16 @@ void loop() {
     Serial.print(", ");
   }
   Serial.println();
-  byte initDir = 0;
+
+  
+  // POINT OF POTENTIAL TOM FOOLERY --> check format of array
+  //Loop through array, check next node in path, check if obstacle, if not then move to it. Else replan
   for (int i = inPath[0]*2-1; i > 0; i-=2){
-    // x's 
-    if (inPath[i] - inPath[i-2] != 0){ // if the x value is off
-      if (inPath[i] > inPath[i-2]){ // if it needs to turn left or right
-        // go left
+    //If x's are different
+    if (inPath[i] - inPath[i-2] != 0){
+      //Needs to go left
+      if (inPath[i] > inPath[i-2]){
+        //Orient bot
         if (initDir != 3){
           switch(initDir){
             case 0:
@@ -125,33 +144,37 @@ void loop() {
           }
         }
         initDir = 3;
-       }
-        
-        if (inPath[i] < inPath[i-2]){ // if it needs to turn left or right
-          // go right
-          if (initDir != 1){
-            switch(initDir){
-              case 0:
-                turnRight();
-                break;
-              case 3:
-                doA180();
-                break;
-              case 2:
-                turnLeft();
-                break;
-              default:
-                break;
-            }
+      }
+      
+      //Needs to go right
+      else{
+        //Orient bot
+        if (initDir != 1){
+          switch(initDir){
+            case 0:
+              turnRight();
+              break;
+            case 3:
+              doA180();
+              break;
+            case 2:
+              turnLeft();
+              break;
+            default:
+              break;
           }
-          initDir = 1;
         }
-        
-     // POINT OF POTENTIAL TOM FOOLERY --> check format of array
-    // y's
-    } else {    // the y values are off
-      if (inPath[i+1] > inPath[i-1]){ // if it needs to turn up or down
-        // go up
+
+        //Update direction
+        initDir = 1;
+      }
+    }
+
+    //If y's are different
+    else {
+      //Needs to go up
+      if (inPath[i+1] > inPath[i-1]){
+        //Orient bot
         if (initDir != 0){
           switch(initDir){
             case 3:
@@ -167,36 +190,43 @@ void loop() {
               break;
           }
         }
-        initDir = 0;
-       }
         
-        if (inPath[i+1] < inPath[i-1]){ // if it needs to turn left or right
-          // go right
-          if (initDir != 2){
-            switch(initDir){
-              case 0:
-                doA180();
-                break;
-              case 3:
-                turnLeft();
-                break;
-              case 1:
-                turnRight();
-                break;
-              default:
-                break;
-            }
+        //Update direction
+        initDir = 0;
+      }
+
+      //Needs to go down
+      else{
+        //Orient bot
+        if (initDir != 2){
+          switch(initDir){
+            case 0:
+              doA180();
+              break;
+            case 3:
+              turnLeft();
+              break;
+            case 1:
+              turnRight();
+              break;
+            default:
+              break;
           }
-          initDir = 2;
         }
+        //Update direction
+        initDir = 2;
+      }
     }
 
-    //Obstacle detection -- needs to be added back in eventually
+    //Check if next node is an obstacle -- temporarily removed for debugging
     /*if(checkForObstacles()){
       //Add the obstacle
       //Reset the graph
+      //Dynamic replan with new obstacle
       aStar();
     }*/
+
+    //If not an obstacle, go forward
     //else{
       goForward();
       if(checkForDestination()){
@@ -209,12 +239,12 @@ void loop() {
 
 
 
-void aStar() {
-  // obstacle X's and Y's 
+void aStar(){
+  //Set obstacle x's and y's 
   const PROGMEM uint8_t obstacleX[] = {0};
   const PROGMEM uint8_t obstacleY[] = {1};
   
-  // set all g and h costs of each node in graph to infinity(255)
+  //Set all g and h costs of each node in graph to infinity(255)
   for (byte i = 0; i < 16; i++){
     for (byte j = 0; j < 16; j++){
         graph[i][j].gCost = 255;
@@ -222,34 +252,34 @@ void aStar() {
     }
   }
   
-  // set start node g cost to zero
+  //Set start node g cost to zero
   graph[srcXandY[0]][srcXandY[1]].gCost = 0;
   
-  // set heuristic value of start node
+  //Set heuristic value of start node
   graph[srcXandY[0]][srcXandY[1]].hCost = abs((destXandY[0] - srcXandY[0])) + abs((destXandY[1] - srcXandY[1]));
 
-  // put the startnode in the queue, set the source node bit
+  //Put the start node in the queue, set the source node bit
   graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b10001010; 
     
-  // set the info bit for known node obstacles
+  //Set the info bit for known node obstacles
   for (byte i = 0; i < OBSTACLE_SIZE; i++){
     (graph[obstacleX[i]][obstacleY[i]]).infoBits |= 0b100;
   }
 
-  // set the destination node bits
+  //Set the destination node bits
   graph[destXandY[0]][destXandY[1]].infoBits |= 0b1001;
 
-  // set the in queue bit for the start node
+  //Set the in queue bit for the start node
   graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b10000000;
-  // set source's parent x y to itself
+  //Set source's parent x y to itself
   graph[srcXandY[0]][srcXandY[1]].parentXY = (srcXandY[0] << 4) | srcXandY[1];
-  // set direction bit of source (started out facing east)
+  //Set direction bit of source (started out facing east)
   graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b000000;
 
 
   
-  // start A star algorithm
-  // setup
+  //Start A star algorithm
+  //Setup
   bool queueEmpty = true;
   for (byte i = 0; i < 16; i++){
     for (byte j = 0; j < 16; j++){
@@ -259,7 +289,7 @@ void aStar() {
     }
   }
   
-  // algorithm start
+  //Algorithm start
   while (!queueEmpty){
     Node *current;
     uint16_t minScore = 510;
@@ -325,19 +355,19 @@ void aStar() {
       return;
     }
     
-    // remove min score from queue
-    current->infoBits &= 0b01111111;  //remove from queue bit
-    current->infoBits |= 0b01000000;  //add to visited 
+    //Remove min score from queue
+    current->infoBits &= 0b01111111;  //Remove from queue bit
+    current->infoBits |= 0b01000000;  //Add to visited 
     
     ////////// setup for loop //////////////////////
-    // check if neighbor is new, then add it to the open queue 
-    // not in the queue and not been visited
+    //Check if neighbor is new, then add it to the open queue 
+    //Not in the queue and not been visited
     Node *rightNeb, *leftNeb, *topNeb, *botNeb;
     Node* nebArr[4];
     for (int i=0;i<4;i++){
       nebArr[i] = 0;
     }
-    // must initialize all the neighbors' direction bits
+    //Must initialize all the neighbors' direction bits
     if (xMin != 15){
       rightNeb = &graph[xMin+1][yMin];
       rightNeb->infoBits |= 0b010000;
@@ -367,8 +397,8 @@ void aStar() {
       if (!(nebArr[i]->infoBits & 0b10000000)) 
         nebArr[i]->infoBits |= 0b10000000; // add to queue
       
-      // update direction bits
-      // define the cost of each neighbor
+      //Update direction bits
+      //Define the cost of each neighbor
       switch (((current->infoBits & 0b110000) ^ (nebArr[i]->infoBits & 0b110000)) >> 4){
         case 0:
           dist = 1;
@@ -469,45 +499,76 @@ void sweepServo(Servo servo){
   }
 }*/
 
+
+//Checks for obstacles, returns true if one is found, false otherwise
 bool checkForObstacles(){
+  //Tracks # of times an obstacle is detected
   int detected = 0;
+
+  //Set servo to 90 degree position
   servo.write(90);
+
+  //Check if obstacle is in the way
   if(ultrasonicDistance() < 13){
       detected++;
   }
+
+  //Rotate servo from 90 - 115 degrees
   for(int pos = 90; pos <= 115; pos++){
     servo.write(pos);
     delay(30);
   }
+
+  //Check if an obstacle is in the way
   if(ultrasonicDistance() <= 13){
       detected++;
   }
+
+  //Rotate servo from 115 - 65 degrees
   for(int pos = 115; pos >= 65; pos--){
     servo.write(pos);
     delay(30);
   }
+
+  //Check if obstacle is in the way
   if(ultrasonicDistance() <= 13){
       detected++;
   }
+
+  //Rotate servo from 65 back to 90 degrees
   for(int pos = 65; pos <= 90; pos++){
     servo.write(pos);
     delay(30);
   }
+
+  //If an obstacle has been detected more than once, indicate that there is an obstacle in the path
   bool found = false;
+
+  //Since the ultrasonic occasionally produces odd results, this attempts to filter out false hits
   if(detected > 1){
     found = true;
   }
   return found;
 }
 
+//Returns distance from ultrasonic sensor to nearest obstacle in inches
 int ultrasonicDistance(){
+  //Set ultrasonic to output to activate it
   pinMode(ULTRASONICPIN, OUTPUT);
+
+  //Ensure clean HIGH pulse
   digitalWrite(ULTRASONICPIN, LOW);
   delayMicroseconds(2);
+
+  //Activate ultrasonic with 5us HIGH pulse
   digitalWrite(ULTRASONICPIN, HIGH);
   delayMicroseconds(5);
   digitalWrite(ULTRASONICPIN, LOW);
+
+  //Swap ultrasonic pin mode to "catch" echo
   pinMode(ULTRASONICPIN, INPUT);
+
+  //Convert microseconds returned by pulseIn to inches
   return pulseIn(ULTRASONICPIN, HIGH) / 74 / 2;
 }
 
