@@ -45,7 +45,7 @@ Servo servo;
 
 //Set source and destination
 byte srcXandY[] = {0,0};
-byte destXandY[] = {10,15};
+byte destXandY[] = {0,2};
 
 //Array for x,y of nodes in path
 byte inPath[255];
@@ -66,6 +66,7 @@ void setup() {
   AFMS.begin();
   leftMotor->setSpeed(100);
   rightMotor->setSpeed(100);
+  Wire.setClock(400000);
 
   //Turn on LEDs
   pinMode(LED1PIN, OUTPUT);
@@ -102,7 +103,7 @@ void loop() {
     Serial.print(", ");
   }
   Serial.println();
-  byte initDir = 1;
+  byte initDir = 0;
   for (int i = inPath[0]*2-1; i > 0; i-=2){
     // x's 
     if (inPath[i] - inPath[i-2] != 0){ // if the x value is off
@@ -189,18 +190,20 @@ void loop() {
           initDir = 2;
         }
     }
-    if(checkForObstacles()){
+
+    //Obstacle detection -- needs to be added back in eventually
+    /*if(checkForObstacles()){
       //Add the obstacle
       //Reset the graph
       aStar();
-    }
-    else{
+    }*/
+    //else{
       goForward();
       if(checkForDestination()){
         Serial.println("Arrived at destination!");
         while(1);
       }
-    }
+    //}
   }
 }
 
@@ -209,7 +212,7 @@ void loop() {
 void aStar() {
   // obstacle X's and Y's 
   const PROGMEM uint8_t obstacleX[] = {0};
-  const PROGMEM uint8_t obstacleY[] = {5};
+  const PROGMEM uint8_t obstacleY[] = {1};
   
   // set all g and h costs of each node in graph to infinity(255)
   for (byte i = 0; i < 16; i++){
@@ -241,7 +244,7 @@ void aStar() {
   // set source's parent x y to itself
   graph[srcXandY[0]][srcXandY[1]].parentXY = (srcXandY[0] << 4) | srcXandY[1];
   // set direction bit of source (started out facing east)
-  graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b010000;
+  graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b000000;
 
 
   
@@ -313,7 +316,7 @@ void aStar() {
         Serial.println(); 
         
       }
-      inPath[0] = count+1;
+      inPath[0] = count+2;
       inPath[count*2+3] = srcXandY[0];
       inPath[count*2+4] = srcXandY[1];
       Serial.print(count); Serial.println(" ADDED TO PATH");
@@ -326,7 +329,7 @@ void aStar() {
     current->infoBits &= 0b01111111;  //remove from queue bit
     current->infoBits |= 0b01000000;  //add to visited 
     
-////////// setup for loop //////////////////////
+    ////////// setup for loop //////////////////////
     // check if neighbor is new, then add it to the open queue 
     // not in the queue and not been visited
     Node *rightNeb, *leftNeb, *topNeb, *botNeb;
