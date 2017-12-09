@@ -34,7 +34,6 @@ int ultrasonicDistance(int ultraSonicPin);
 int checkForDestination(int photoPin);
 
 //Servo motor setup
-int pos = 0;
 Servo servo;
 
 void setup() {
@@ -126,46 +125,46 @@ void goBackward(){
 /*//Sweep servo motor from 45 to 135 and back
 void sweepServo(Servo servo){
   servo.write(90);
-  for(pos = 90; pos <= 135; pos++){
+  for(int pos = 90; pos <= 135; pos++){
     servo.write(pos);
     delay(30);
   }
-  for(pos = 135; pos >= 45; pos--){
+  for(int pos = 135; pos >= 45; pos--){
     servo.write(pos);
     delay(30);
   }
-  for(pos = 45; pos <= 90; pos++){
+  for(int pos = 45; pos <= 90; pos++){
     servo.write(pos);
     delay(30);
   }
 }*/
 
 bool checkForObstacles(int ultraSonicPin){
-  int i = 0;
+  int detected = 0;
   servo.write(90);
   if(ultrasonicDistance(ULTRASONICPIN) < 13){
-      i++;
+      detected++;
   }
-  for(pos = 90; pos <= 115; pos++){
+  for(int pos = 90; pos <= 115; pos++){
     servo.write(pos);
     delay(30);
   }
   if(ultrasonicDistance(ULTRASONICPIN) <= 13){
-      i++;
+      detected++;
   }
-  for(pos = 115; pos >= 65; pos--){
+  for(int pos = 115; pos >= 65; pos--){
     servo.write(pos);
     delay(30);
   }
   if(ultrasonicDistance(ULTRASONICPIN) <= 13){
-      i++;
+      detected++;
   }
-  for(pos = 65; pos <= 90; pos++){
+  for(int pos = 65; pos <= 90; pos++){
     servo.write(pos);
     delay(30);
   }
   bool found = false;
-  if(i > 1){
+  if(detected > 1){
     found = true;
   }
   return found;
@@ -179,8 +178,7 @@ int ultrasonicDistance(int ultraSonicPin){
   delayMicroseconds(5);
   digitalWrite(ultraSonicPin, LOW);
   pinMode(ultraSonicPin, INPUT);
-  int duration = pulseIn(ultraSonicPin, HIGH);
-  return duration / 74 / 2;
+  return pulseIn(ultraSonicPin, HIGH) / 74 / 2;
 }
 
 
