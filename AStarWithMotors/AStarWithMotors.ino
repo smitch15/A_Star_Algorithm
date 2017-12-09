@@ -29,6 +29,7 @@ void goBackward();
 bool checkForObstacles();
 int ultrasonicDistance();
 bool checkForDestination();
+void dance();
 
 //Class for keeping track of nodes in graph
 class Node{
@@ -113,19 +114,27 @@ void loop() {
   //Debug
   Serial.println("AFTER A STAR");
   Serial.println("in path coords.");
-  for (int k = 0; k < 255; k++){
+  bool atDest = true;
+  for (int k = 0; k <= inPath[0] * 2; k++){
     Serial.print(inPath[k]);
-    if (k == 255) break;
-    Serial.print(", ");
+    if(k == (inPath[0] * 2)){
+      Serial.println();
+    }
+    else if((k % 2) == 1){
+      Serial.print(", ");
+    }
+    else{
+      Serial.print("; ");
+    }
   }
   Serial.println();
 
   
-  // POINT OF POTENTIAL TOM FOOLERY --> check format of array
+  //POINT OF POTENTIAL TOM FOOLERY --> check format of array
   //Loop through array, check next node in path, check if obstacle, if not then move to it. Else replan
-  for (int i = inPath[0]*2-1; i > 0; i-=2){
+  for (int i = inPath[0]*2-1; i >= 3; i-=2){
     //If x's are different
-    if (inPath[i] - inPath[i-2] != 0){
+    if (inPath[i] != inPath[i-2]){
       //Needs to go left
       if (inPath[i] > inPath[i-2]){
         //Orient bot
@@ -144,6 +153,8 @@ void loop() {
               break;
           }
         }
+
+        //Update direction
         initDir = 3;
       }
       
@@ -174,7 +185,7 @@ void loop() {
     //If y's are different
     else {
       //Needs to go up
-      if (inPath[i+1] > inPath[i-1]){
+      if (inPath[i+1] < inPath[i-1]){
         //Orient bot
         if (initDir != 0){
           switch(initDir){
@@ -205,10 +216,10 @@ void loop() {
               doA180();
               break;
             case 3:
-              turnLeft();
+              turnRight();
               break;
             case 1:
-              turnRight();
+              turnLeft();
               break;
             default:
               break;
@@ -229,12 +240,20 @@ void loop() {
 
     //If not an obstacle, go forward
     //else{
-      goForward();
-      if(checkForDestination()){
-        Serial.println("Arrived at destination!");
-        while(1);
-      }
+        goForward();
+        if(checkForDestination()){
+          Serial.println("Arrived at destination!");
+          atDest = true;
+        }
     //}
+
+    //This should only be here while the above if/else statement is commented out
+    if(i == 3){
+        atDest = true;
+    }
+  }
+  while(atDest){
+    dance();
   }
 }
 
@@ -328,32 +347,25 @@ void aStar(int sourceX, int sourceY){
         if (current->infoBits & 0b1000){
           Serial.println("ADDED TO PATH");
         }
-        int num = 0;
-        for (int i = 0; i < 16; i++){
-          for (int j = 0; j < 16; j++){
-            if (graph[i][j].infoBits & 1000){
-              num++;
-            }
-          }
-        }
-        Serial.print(num); Serial.println(" nodes in path");
+        Serial.print(count);
+        Serial.println(" nodes in path, excluding source/destination");
         Serial.print("Current parent X, Y = ");
-
         Serial.print(current->parentXY >> 4);
         Serial.print(", ");
         Serial.println(current->parentXY & 0b1111);
-        Serial.print("Source X, Y= ");
-        Serial.println(sourceX);
+        Serial.print("Source X, Y = ");
+        Serial.print(sourceX);
+        Serial.print(", ");
         Serial.println(sourceY);
-        Serial.println(); 
-        
+        Serial.println();
       }
-      inPath[0] = count+2;
+      inPath[0] = count + 2;
       inPath[count*2+3] = sourceX;
       inPath[count*2+4] = sourceY;
-      Serial.print(count); Serial.println(" ADDED TO PATH");
-     
+      Serial.print(count);
+      Serial.println(" ADDED TO PATH");
       Serial.println("SUCCESS");
+      Serial.println();
       return;
     }
     
@@ -446,7 +458,7 @@ void turnRight(){
   for(int i = 0; i < 210; i++){
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
-    delayMicroseconds(150);
+    delayMicroseconds(250);
   }
 }
 
@@ -455,7 +467,7 @@ void turnLeft(){
   for(int i = 0; i < 210; i++){
     leftMotor->step(1, BACKWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
-    delayMicroseconds(150);
+    delayMicroseconds(250);
   }
 }
 
@@ -470,7 +482,7 @@ void goForward(){
   for(int i = 0; i < 560; i++){
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
-    delayMicroseconds(150);
+    delayMicroseconds(250);
   }
 }
 
@@ -479,7 +491,7 @@ void goBackward(){
   for(int i = 0; i < 560; i++){
     leftMotor->step(1, BACKWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
-    delayMicroseconds(150);
+    delayMicroseconds(250);
   }
 }
 
@@ -578,3 +590,21 @@ int ultrasonicDistance(){
 bool checkForDestination(){
   return false;
 }
+
+void dance(){
+  leftMotor->setSpeed(120);
+  rightMotor->setSpeed(120);
+  for(int i = 0; i < 100; i++){
+    leftMotor->step(1, FORWARD, INTERLEAVE);
+    rightMotor->step(1, FORWARD, INTERLEAVE);
+    delayMicroseconds(250);
+  }
+  for(int i = 0; i < 100; i++){
+    leftMotor->step(1, BACKWARD, INTERLEAVE);
+    rightMotor->step(1, BACKWARD, INTERLEAVE);
+    delayMicroseconds(250);
+  }
+  doA180();
+  doA180();
+}
+
