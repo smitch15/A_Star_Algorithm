@@ -24,7 +24,7 @@ void turnRight();
 void doA180();
 void goForward();
 void goBackward();
-//void sweepServo(Servo servo); //Temporarily obsolete, keep for P2
+//void sweepServo(Servo servo); //Temporarily obsolete, keep for P2 + source code
 bool checkForObstacles();
 int ultrasonicDistance();
 bool checkForDestination();
