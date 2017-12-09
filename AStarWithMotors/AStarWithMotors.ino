@@ -10,6 +10,7 @@
 #include <Servo.h>
 
 #define OBSTACLE_SIZE 1
+#define ORIGINALSOURCENODE
 
 //Define pins
 #define LED1PIN 2
@@ -18,7 +19,7 @@
 #define ULTRASONICPIN 5
 #define PHOTOPIN 0
 
-void aStar();
+void aStar(int sourceX, int SourceY);
 void turnLeft();
 void turnRight();
 void doA180();
@@ -104,7 +105,7 @@ void setup() {
 //   }
 
   //Build path with A*
-  aStar();
+  aStar(srcXandY[0], srcXandY[1]);
 }
 
 void loop() {
@@ -239,7 +240,7 @@ void loop() {
 
 
 
-void aStar(){
+void aStar(int sourceX, int sourceY){
   //Set obstacle x's and y's 
   const PROGMEM uint8_t obstacleX[] = {0};
   const PROGMEM uint8_t obstacleY[] = {1};
@@ -253,13 +254,13 @@ void aStar(){
   }
   
   //Set start node g cost to zero
-  graph[srcXandY[0]][srcXandY[1]].gCost = 0;
+  graph[sourceX][sourceY].gCost = 0;
   
   //Set heuristic value of start node
-  graph[srcXandY[0]][srcXandY[1]].hCost = abs((destXandY[0] - srcXandY[0])) + abs((destXandY[1] - srcXandY[1]));
+  graph[sourceX][sourceY].hCost = abs((sourceX - sourceX)) + abs((destXandY[1] - sourceY));
 
   //Put the start node in the queue, set the source node bit
-  graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b10001010; 
+  graph[sourceX][sourceY].infoBits |= 0b10001010; 
     
   //Set the info bit for known node obstacles
   for (byte i = 0; i < OBSTACLE_SIZE; i++){
@@ -270,11 +271,11 @@ void aStar(){
   graph[destXandY[0]][destXandY[1]].infoBits |= 0b1001;
 
   //Set the in queue bit for the start node
-  graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b10000000;
+  graph[sourceX][sourceY].infoBits |= 0b10000000;
   //Set source's parent x y to itself
-  graph[srcXandY[0]][srcXandY[1]].parentXY = (srcXandY[0] << 4) | srcXandY[1];
+  graph[sourceX][sourceY].parentXY = (sourceX << 4) | sourceY;
   //Set direction bit of source (started out facing east)
-  graph[srcXandY[0]][srcXandY[1]].infoBits |= 0b000000;
+  graph[sourceX][sourceY].infoBits |= 0b000000;
 
 
   
@@ -306,7 +307,7 @@ void aStar(){
       }
     }
     if (current->infoBits & 0b1){ // if current is destination
-      byte sourceXY = (srcXandY[0] << 4) | srcXandY[1];
+      byte sourceXY = (sourceX << 4) | sourceY;
       Serial.println();
 
       Serial.println();
@@ -328,9 +329,9 @@ void aStar(){
           Serial.println("ADDED TO PATH");
         }
         int num = 0;
-        for (int i = 0; i<16; i++){
+        for (int i = 0; i < 16; i++){
           for (int j = 0; j < 16; j++){
-            if (graph[i][j].infoBits &1000){
+            if (graph[i][j].infoBits & 1000){
               num++;
             }
           }
@@ -338,17 +339,18 @@ void aStar(){
         Serial.print(num); Serial.println(" nodes in path");
         Serial.print("Current parent X, Y = ");
 
-        Serial.println(current->parentXY >> 4);
+        Serial.print(current->parentXY >> 4);
+        Serial.print(", ");
         Serial.println(current->parentXY & 0b1111);
         Serial.print("Source X, Y= ");
-        Serial.println(srcXandY[0]);
-        Serial.println(srcXandY[1]);
+        Serial.println(sourceX);
+        Serial.println(sourceY);
         Serial.println(); 
         
       }
       inPath[0] = count+2;
-      inPath[count*2+3] = srcXandY[0];
-      inPath[count*2+4] = srcXandY[1];
+      inPath[count*2+3] = sourceX;
+      inPath[count*2+4] = sourceY;
       Serial.print(count); Serial.println(" ADDED TO PATH");
      
       Serial.println("SUCCESS");
