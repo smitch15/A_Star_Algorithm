@@ -37,14 +37,15 @@ class Node{
   byte infoBits = 0;
 };
 
+//Initialize graph
 Node graph[16][16];
 
 //Servo motor setup
 Servo servo;
 
 //Set source and destination
-const PROGMEM uint8_t srcXandY[] = {0,0};
-const PROGMEM uint8_t destXandY[] = {10,15};
+byte srcXandY[] = {0,0};
+byte destXandY[] = {10,15};
 
 //Array for x,y of nodes in path
 byte inPath[255];
@@ -78,17 +79,17 @@ void setup() {
   //Set up ultrasonic
   pinMode(ULTRASONICPIN, OUTPUT);
 
-  int num = 0;
-  for (int i = 0; i<16; i++){
-     for (int j = 0; j < 16; j++){
-        if (graph[i][j].infoBits &1000){
-          num++;
-        }
-      }
-   }
+//  int num = 0;
+//  for (int i = 0; i<16; i++){
+//     for (int j = 0; j < 16; j++){
+//        if (graph[i][j].infoBits &1000){
+//          num++;
+//        }
+//      }
+//   }
   
-  Serial.println("INIT");
-  Serial.print(num); Serial.println(" nodes in path");
+//  Serial.println("INIT");
+//  Serial.print(num); Serial.println(" nodes in path");
   aStar();
 }
 
