@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <Servo.h>
 
-#define OBSTACLE_SIZE 1
+#define OBSTACLE_SIZE 4
 #define ORIGINALSOURCENODE
 
 //Define pins
@@ -28,7 +28,7 @@ void goBackward();
 //void sweepServo(Servo servo); //Temporarily obsolete, keep for P2 + source code
 bool checkForObstacles();
 int ultrasonicDistance();
-bool checkForDestination();
+bool checkForDestination(int destX, int destY, int srcX, int srcY);
 void dance();
 
 //Class for keeping track of nodes in graph
@@ -56,8 +56,8 @@ Node graph[16][16];
 Servo servo;
 
 //Set source and destination
-byte srcXandY[] = {0,0};
-byte destXandY[] = {0,2};
+byte srcXandY[] = {0,1};
+byte destXandY[] = {3,3};
 
 //Array for x,y of nodes in path
 byte inPath[255];
@@ -79,8 +79,8 @@ void setup() {
 
   //Motor shield and motor initialization
   AFMS.begin();
-  leftMotor->setSpeed(100);
-  rightMotor->setSpeed(100);
+  leftMotor->setSpeed(120);
+  rightMotor->setSpeed(120);
   Wire.setClock(400000);
 
   //Turn on LEDs
@@ -110,29 +110,13 @@ void setup() {
 }
 
 void loop() {
-
-  //Debug
-  Serial.println("AFTER A STAR");
-  Serial.println("in path coords.");
-  bool atDest = true;
-  for (int k = 0; k <= inPath[0] * 2; k++){
-    Serial.print(inPath[k]);
-    if(k == (inPath[0] * 2)){
-      Serial.println();
-    }
-    else if((k % 2) == 1){
-      Serial.print(", ");
-    }
-    else{
-      Serial.print("; ");
-    }
-  }
-  Serial.println();
-
-  
   //POINT OF POTENTIAL TOM FOOLERY --> check format of array
   //Loop through array, check next node in path, check if obstacle, if not then move to it. Else replan
-  for (int i = inPath[0]*2-1; i >= 3; i-=2){
+  unsigned int currentX = srcXandY[0];
+  unsigned int currentY = srcXandY[1];
+  bool atDest = true;
+  for (int i = inPath[0]*2 - 1; i >= 3; i = i){
+    Serial.print(currentX); Serial.print(", "); Serial.println(currentY);
     //If x's are different
     if (inPath[i] != inPath[i-2]){
       //Needs to go left
@@ -183,7 +167,7 @@ void loop() {
     }
 
     //If y's are different
-    else {
+    else{
       //Needs to go up
       if (inPath[i+1] < inPath[i-1]){
         //Orient bot
@@ -216,10 +200,10 @@ void loop() {
               doA180();
               break;
             case 3:
-              turnRight();
+              turnLeft();
               break;
             case 1:
-              turnLeft();
+              turnRight();
               break;
             default:
               break;
@@ -231,25 +215,35 @@ void loop() {
     }
 
     //Check if next node is an obstacle -- temporarily removed for debugging
-    /*if(checkForObstacles()){
+    if(checkForObstacles()){
       //Add the obstacle
+      graph[inPath[i - 2]][inPath[i - 1]].infoBits |= 0b00000100;
+      
       //Reset the graph
+      for(int j = 0; j < 16; j++){
+        for(int k = 0; k < 16; k++){
+          graph[j][k].infoBits &= 0b00000101;
+        }
+      }
+
+      //Update source
+      graph[currentX][currentY].infoBits |= 0b00000010;
+      
       //Dynamic replan with new obstacle
-      aStar();
-    }*/
+      aStar(currentX, currentY);
+      i = inPath[0] * 2 - 1;
+    }
 
     //If not an obstacle, go forward
-    //else{
+    else{
         goForward();
-        if(checkForDestination()){
+        currentX = inPath[i - 2];
+        currentY = inPath[i - 1];
+        if(checkForDestination(destXandY[0], destXandY[1], currentX, currentY)){
           Serial.println("Arrived at destination!");
           atDest = true;
         }
-    //}
-
-    //This should only be here while the above if/else statement is commented out
-    if(i == 3){
-        atDest = true;
+        i-=2;
     }
   }
   while(atDest){
@@ -261,8 +255,8 @@ void loop() {
 
 void aStar(int sourceX, int sourceY){
   //Set obstacle x's and y's 
-  const PROGMEM uint8_t obstacleX[] = {0};
-  const PROGMEM uint8_t obstacleY[] = {1};
+  const PROGMEM uint8_t obstacleX[] = {0,2,2,2};
+  const PROGMEM uint8_t obstacleY[] = {2,3,2,0};
   
   //Set all g and h costs of each node in graph to infinity(255)
   for (byte i = 0; i < 16; i++){
@@ -276,7 +270,7 @@ void aStar(int sourceX, int sourceY){
   graph[sourceX][sourceY].gCost = 0;
   
   //Set heuristic value of start node
-  graph[sourceX][sourceY].hCost = abs((sourceX - sourceX)) + abs((destXandY[1] - sourceY));
+  graph[sourceX][sourceY].hCost = abs((destXandY[0] - sourceX)) + abs((destXandY[1] - sourceY));
 
   //Put the start node in the queue, set the source node bit
   graph[sourceX][sourceY].infoBits |= 0b10001010; 
@@ -365,6 +359,22 @@ void aStar(int sourceX, int sourceY){
       Serial.print(count);
       Serial.println(" ADDED TO PATH");
       Serial.println("SUCCESS");
+      Serial.println();
+      //Debug
+      Serial.println("AFTER A STAR");
+      Serial.println("in path coords.");
+      for (int k = 0; k <= inPath[0] * 2; k++){
+        Serial.print(inPath[k]);
+        if(k == (inPath[0] * 2)){
+          Serial.println();
+        }
+        else if((k % 2) == 1){
+          Serial.print(", ");
+        }
+        else{
+          Serial.print("; ");
+        }
+      }
       Serial.println();
       return;
     }
@@ -455,7 +465,7 @@ void aStar(int sourceX, int sourceY){
 
 //Turn 90 degrees right
 void turnRight(){
-  for(int i = 0; i < 210; i++){
+  for(int i = 0; i < 212; i++){
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
     delayMicroseconds(250);
@@ -464,7 +474,7 @@ void turnRight(){
 
 //TUrn 90 degrees left
 void turnLeft(){
-  for(int i = 0; i < 210; i++){
+  for(int i = 0; i < 212; i++){
     leftMotor->step(1, BACKWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(250);
@@ -528,10 +538,8 @@ bool checkForObstacles(){
   }
 
   //Rotate servo from 90 - 115 degrees
-  for(int pos = 90; pos <= 115; pos++){
-    servo.write(pos);
-    delay(30);
-  }
+  servo.write(115);
+  delay(100);
 
   //Check if an obstacle is in the way
   if(ultrasonicDistance() <= 13){
@@ -539,10 +547,8 @@ bool checkForObstacles(){
   }
 
   //Rotate servo from 115 - 65 degrees
-  for(int pos = 115; pos >= 65; pos--){
-    servo.write(pos);
-    delay(30);
-  }
+  servo.write(65);
+  delay(100);
 
   //Check if obstacle is in the way
   if(ultrasonicDistance() <= 13){
@@ -550,10 +556,8 @@ bool checkForObstacles(){
   }
 
   //Rotate servo from 65 back to 90 degrees
-  for(int pos = 65; pos <= 90; pos++){
-    servo.write(pos);
-    delay(30);
-  }
+  servo.write(90);
+  delay(100);
 
   //If an obstacle has been detected more than once, indicate that there is an obstacle in the path
   bool found = false;
@@ -587,10 +591,15 @@ int ultrasonicDistance(){
 }
 
 
-bool checkForDestination(){
+bool checkForDestination(int destX, int destY, int srcX, int srcY){
+  if((destX == srcX) && (destY == srcY)){
+    Serial.println("Destination found!");
+    return true;
+  }
   return false;
 }
 
+//The most important function
 void dance(){
   leftMotor->setSpeed(120);
   rightMotor->setSpeed(120);
@@ -599,12 +608,19 @@ void dance(){
     rightMotor->step(1, FORWARD, INTERLEAVE);
     delayMicroseconds(250);
   }
+  leftMotor->step(100, FORWARD, INTERLEAVE);
+  leftMotor->step(100, BACKWARD, INTERLEAVE);
+  rightMotor->step(100, BACKWARD, INTERLEAVE);
+  rightMotor->step(100, FORWARD, INTERLEAVE);
   for(int i = 0; i < 100; i++){
     leftMotor->step(1, BACKWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(250);
   }
+  leftMotor->setSpeed(150);
+  rightMotor->setSpeed(150);
   doA180();
-  doA180();
+  leftMotor->setSpeed(100);
+  rightMotor->setSpeed(100);
 }
 
