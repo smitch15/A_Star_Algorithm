@@ -9,8 +9,7 @@
 #include <stdbool.h>
 #include <Servo.h>
 
-#define OBSTACLE_SIZE 4
-#define ORIGINALSOURCENODE
+#define OBSTACLE_SIZE 18
 
 //Define pins
 #define LED1PIN 2
@@ -56,8 +55,8 @@ Node graph[16][16];
 Servo servo;
 
 //Set source and destination
-byte srcXandY[] = {0,1};
-byte destXandY[] = {3,3};
+byte srcXandY[] = {2,2};
+byte destXandY[] = {5,7};
 
 //Array for x,y of nodes in path
 byte inPath[255];
@@ -255,8 +254,8 @@ void loop() {
 
 void aStar(int sourceX, int sourceY){
   //Set obstacle x's and y's 
-  const PROGMEM uint8_t obstacleX[] = {0,2,2,2};
-  const PROGMEM uint8_t obstacleY[] = {2,3,2,0};
+  const PROGMEM uint8_t obstacleX[] = {1,1,1,2,2,3,3,3,3,4,4,5,7,7,7,7,7,7};
+  const PROGMEM uint8_t obstacleY[] = {1,2,3,3,6,1,2,3,6,5,6,5,0,1,2,3,4,5};
   
   //Set all g and h costs of each node in graph to infinity(255)
   for (byte i = 0; i < 16; i++){
