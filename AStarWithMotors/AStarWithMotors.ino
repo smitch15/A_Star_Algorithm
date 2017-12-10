@@ -49,7 +49,7 @@ class Node{
 };
 
 //Initialize graph
-Node graph[16][16];
+Node graph[8][13];
 
 //Servo motor setup
 Servo servo;
@@ -78,8 +78,8 @@ void setup() {
 
   //Motor shield and motor initialization
   AFMS.begin();
-  leftMotor->setSpeed(120);
-  rightMotor->setSpeed(120);
+  leftMotor->setSpeed(500);
+  rightMotor->setSpeed(500);
   Wire.setClock(400000);
 
   //Turn on LEDs
@@ -97,6 +97,13 @@ void setup() {
 
   //Build path with A*
   aStar(srcXandY[0], srcXandY[1]);
+
+  //Debug
+  delay(1000);
+  //for(int i = 0; i < 4; i++){
+    doA180();
+  //}
+  while(1);
 }
 
 void loop() {
@@ -456,20 +463,22 @@ void aStar(int sourceX, int sourceY){
 
 //Turn 90 degrees right
 void turnRight(){
-  for(int i = 0; i < 212; i++){
+  for(int i = 0; i < 211; i++){
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
     delayMicroseconds(250);
   }
+  leftMotor->step(1, FORWARD, INTERLEAVE);
 }
 
 //TUrn 90 degrees left
 void turnLeft(){
-  for(int i = 0; i < 212; i++){
+  for(int i = 0; i < 211; i++){
     leftMotor->step(1, BACKWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(250);
   }
+  rightMotor->step(1, BACKWARD, INTERLEAVE);
 }
 
 //Turn counter-clockwise 180 degrees
@@ -480,7 +489,7 @@ void doA180(){
 
 //Move forward one foot
 void goForward(){
-  for(int i = 0; i < 560; i++){
+  for(int i = 0; i < 561; i++){
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(250);
@@ -489,7 +498,7 @@ void goForward(){
 
 //Move backward one foot
 void goBackward(){
-  for(int i = 0; i < 560; i++){
+  for(int i = 0; i < 561; i++){
     leftMotor->step(1, BACKWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
     delayMicroseconds(250);
@@ -528,27 +537,28 @@ bool checkForObstacles(){
       detected++;
   }
 
-  //Rotate servo from 90 - 115 degrees
+  //Keep commented code for p2
+  /*//Rotate servo from 90 - 115 degrees
   servo.write(115);
-  delay(100);
+  delay(100);*/
 
   //Check if an obstacle is in the way
-  if(ultrasonicDistance() <= 12){
+  if(ultrasonicDistance() < 12){
       detected++;
   }
 
-  //Rotate servo from 115 - 65 degrees
+  /*//Rotate servo from 115 - 65 degrees
   servo.write(65);
   delay(100);
 
   //Check if obstacle is in the way
-  if(ultrasonicDistance() <= 12){
+  if(ultrasonicDistance() < 12){
       detected++;
   }
 
   //Rotate servo from 65 back to 90 degrees
   servo.write(90);
-  delay(100);
+  delay(100);*/
 
   //If an obstacle has been detected more than once, indicate that there is an obstacle in the path
   bool found = false;
