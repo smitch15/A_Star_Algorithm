@@ -95,24 +95,16 @@ void setup() {
   //Set up ultrasonic
   pinMode(ULTRASONICPIN, OUTPUT);
 
-//  int num = 0;
-//  for(int i = 0; i < 16; i++){
-//     for(int j = 0; j < 16; j++){
-//        if (graph[i][j].infoBits & 1000){
-//          num++;
-//        }
-//      }
-//   }
-
   //Build path with A*
   aStar(srcXandY[0], srcXandY[1]);
 }
 
 void loop() {
+  Serial.println("Entering loop");
   //POINT OF POTENTIAL TOM FOOLERY --> check format of array
   //Loop through array, check next node in path, check if obstacle, if not then move to it. Else replan
-  unsigned int currentX = srcXandY[0];
-  unsigned int currentY = srcXandY[1];
+  byte currentX = srcXandY[0];
+  byte currentY = srcXandY[1];
   bool atDest = true;
   for (int i = inPath[0]*2 - 1; i >= 3; i = i){
     Serial.print(currentX); Serial.print(", "); Serial.println(currentY);
@@ -219,8 +211,8 @@ void loop() {
       graph[inPath[i - 2]][inPath[i - 1]].infoBits |= 0b00000100;
       
       //Reset the graph
-      for(int j = 0; j < 16; j++){
-        for(int k = 0; k < 16; k++){
+      for(byte j = 0; j < 16; j++){
+        for(byte k = 0; k < 16; k++){
           graph[j][k].infoBits &= 0b00000101;
         }
       }
