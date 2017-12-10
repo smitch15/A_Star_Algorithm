@@ -533,7 +533,7 @@ bool checkForObstacles(){
   servo.write(90);
 
   //Check if obstacle is in the way
-  if(ultrasonicDistance() < 13){
+  if(ultrasonicDistance() < 12){
       detected++;
   }
 
@@ -542,7 +542,7 @@ bool checkForObstacles(){
   delay(100);
 
   //Check if an obstacle is in the way
-  if(ultrasonicDistance() <= 13){
+  if(ultrasonicDistance() <= 12){
       detected++;
   }
 
@@ -551,7 +551,7 @@ bool checkForObstacles(){
   delay(100);
 
   //Check if obstacle is in the way
-  if(ultrasonicDistance() <= 13){
+  if(ultrasonicDistance() <= 12){
       detected++;
   }
 
@@ -590,7 +590,7 @@ int ultrasonicDistance(){
   return pulseIn(ULTRASONICPIN, HIGH) / 74 / 2;
 }
 
-
+//At the moment this just checks if the coordinates are equal. For project 2, include photosensor readings.
 bool checkForDestination(int destX, int destY, int srcX, int srcY){
   if((destX == srcX) && (destY == srcY)){
     Serial.println("Destination found!");
