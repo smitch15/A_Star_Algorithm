@@ -211,8 +211,8 @@ void loop() {
       graph[inPath[i - 2]][inPath[i - 1]].infoBits |= 0b00000100;
       
       //Reset the graph
-      for(byte j = 0; j < 16; j++){
-        for(byte k = 0; k < 16; k++){
+      for(byte j = 0; j < 8; j++){
+        for(byte k = 0; k < 13; k++){
           graph[j][k].infoBits &= 0b00000101;
         }
       }
@@ -250,8 +250,8 @@ void aStar(int sourceX, int sourceY){
   const PROGMEM uint8_t obstacleY[] = {1,2,3,3,6,1,2,3,6,5,6,5,0,1,2,3,4,5};
   
   //Set all g and h costs of each node in graph to infinity(255)
-  for (byte i = 0; i < 16; i++){
-    for (byte j = 0; j < 16; j++){
+  for (byte i = 0; i < 8; i++){     // 0 - 7 for x
+    for (byte j = 0; j < 13; j++){  // 0 - 12 for y 
         graph[i][j].gCost = 255;
         graph[i][j].hCost = 255;
     }
@@ -286,8 +286,8 @@ void aStar(int sourceX, int sourceY){
   //Start A star algorithm
   //Setup
   bool queueEmpty = true;
-  for (byte i = 0; i < 16; i++){
-    for (byte j = 0; j < 16; j++){
+  for (byte i = 0; i < 8; i++){
+    for (byte j = 0; j < 13; j++){
       if (graph[i][j].infoBits & 0b10000000){
         queueEmpty = false;
       }
@@ -299,8 +299,8 @@ void aStar(int sourceX, int sourceY){
     Node *current;
     uint16_t minScore = 510;
     byte xMin, yMin = 17;
-    for (byte i = 0; i < 16; i++){
-      for (byte j = 0; j < 16; j++){
+    for (byte i = 0; i < 8; i++){
+      for (byte j = 0; j < 13; j++){
         if (graph[i][j].hCost + graph[i][j].gCost < minScore && 
         graph[i][j].infoBits & 0b10000000){
           xMin = i; 
@@ -383,7 +383,7 @@ void aStar(int sourceX, int sourceY){
       nebArr[i] = 0;
     }
     //Must initialize all the neighbors' direction bits
-    if (xMin != 15){
+    if (xMin != 7){
       rightNeb = &graph[xMin+1][yMin];
       rightNeb->infoBits |= 0b010000;
       nebArr[0] = rightNeb;
@@ -399,7 +399,7 @@ void aStar(int sourceX, int sourceY){
       topNeb->infoBits |= 0b000000;
       nebArr[2] = topNeb;
     }
-    if (yMin != 15){
+    if (yMin != 12){
       botNeb = &graph[xMin][yMin+1];
       botNeb->infoBits |= 0b100000;
       nebArr[3] = botNeb;
@@ -443,8 +443,8 @@ void aStar(int sourceX, int sourceY){
     }
 
     queueEmpty = true;
-    for (byte i = 0; i < 16; i++){
-      for (byte j = 0; j < 16; j++){
+    for (byte i = 0; i < 8; i++){
+      for (byte j = 0; j < 13; j++){
         if (graph[i][j].infoBits & 0b10000000){
           queueEmpty = false;
         } 
