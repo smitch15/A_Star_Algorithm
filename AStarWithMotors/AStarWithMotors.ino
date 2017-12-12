@@ -1,7 +1,7 @@
 
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
-#include <MultiStepper.h>
+//#include <MultiStepper.h>
 #include <AccelStepper.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
 #include <stdio.h>
@@ -98,12 +98,28 @@ void setup() {
   //Build path with A*
   aStar(srcXandY[0], srcXandY[1]);
 
-  //Debug
-  delay(1000);
-  //for(int i = 0; i < 4; i++){
-    doA180();
-  //}
-  while(1);
+//  //Debug Turn
+//  delay(1000);
+//  for(int i = 0; i < 4; i++){
+////    turnLeftMicro();
+//  turnLeft();
+//  }
+//  while(1);
+
+//  //Debug move forward
+//  while (1){
+//    goForward();
+//    unsigned long time1 = micros();
+//    checkForObstacles();
+//    Serial.println(micros() - time1);
+//  }
+
+//  //Debug move forward detect
+//  for (int i = 0; i < 4; i++){
+//    goForwardDetect();
+//  }
+//  while(1);
+
 }
 
 void loop() {
@@ -212,8 +228,8 @@ void loop() {
       }
     }
 
-    //Check if next node is an obstacle -- temporarily removed for debugging
-    if(checkForObstacles()){
+    //Check if next node is an obstacle
+    if(goForwardDetect()){
       //Add the obstacle
       graph[inPath[i - 2]][inPath[i - 1]].infoBits |= 0b00000100;
       
@@ -234,7 +250,7 @@ void loop() {
 
     //If not an obstacle, go forward
     else{
-        goForward();
+//        goForward();
         currentX = inPath[i - 2];
         currentY = inPath[i - 1];
         if(checkForDestination(destXandY[0], destXandY[1], currentX, currentY)){
@@ -463,7 +479,7 @@ void aStar(int sourceX, int sourceY){
 
 //Turn 90 degrees right
 void turnRight(){
-  for(int i = 0; i < 211; i++){
+  for(int i = 0; i < 213; i++){
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
     delayMicroseconds(250);
@@ -473,13 +489,22 @@ void turnRight(){
 
 //TUrn 90 degrees left
 void turnLeft(){
-  for(int i = 0; i < 211; i++){
+  for(int i = 0; i < 213; i++){
     leftMotor->step(1, BACKWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(250);
   }
-  rightMotor->step(1, BACKWARD, INTERLEAVE);
+//  rightMotor->step(1, BACKWARD, INTERLEAVE);
 }
+
+////TUrn 90 degrees left
+//void turnLeftMicro(){
+//  for(int i = 0; i < 106; i++){
+//    leftMotor->step(1, BACKWARD, MICROSTEP);
+//    rightMotor->step(1, BACKWARD, MICROSTEP);
+//    delayMicroseconds(10);
+//  }
+//}
 
 //Turn counter-clockwise 180 degrees
 void doA180(){
@@ -488,11 +513,34 @@ void doA180(){
 }
 
 //Move forward one foot
-void goForward(){
-  for(int i = 0; i < 561; i++){
+bool goForwardDetect(){
+  bool objectDetected = false;
+  int countSteps = 0;
+  for(int i = 0; i < 562; i++){
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
-    delayMicroseconds(250);
+    delayMicroseconds(100);
+    countSteps = i;
+    if (i % 100 == 0 && checkForObstacles()){
+      for (int j = countSteps; j >= 0; j--){
+        leftMotor->step(1, BACKWARD, INTERLEAVE);
+        rightMotor->step(1, FORWARD, INTERLEAVE);
+        delayMicroseconds(100);
+      }
+      objectDetected = false;
+      return true;
+    }
+    
+  }
+  return false;
+}
+
+//Move forward one foot
+void goForward(){
+  for(int i = 0; i < 562; i++){
+    leftMotor->step(1, FORWARD, INTERLEAVE);
+    rightMotor->step(1, BACKWARD, INTERLEAVE);
+    delayMicroseconds(100);
   }
 }
 
@@ -526,14 +574,15 @@ void sweepServo(Servo servo){
 
 //Checks for obstacles, returns true if one is found, false otherwise
 bool checkForObstacles(){
+//  Serial.println("object detection function entered");
   //Tracks # of times an obstacle is detected
   int detected = 0;
 
   //Set servo to 90 degree position
-  servo.write(90);
+//  servo.write(90);
 
   //Check if obstacle is in the way
-  if(ultrasonicDistance() < 12){
+  if(ultrasonicDistance() <= 4){
       detected++;
   }
 
@@ -543,9 +592,9 @@ bool checkForObstacles(){
   delay(100);*/
 
   //Check if an obstacle is in the way
-  if(ultrasonicDistance() < 12){
-      detected++;
-  }
+//  if(ultrasonicDistance() <= 4){
+//      detected++;
+//  }
 
   /*//Rotate servo from 115 - 65 degrees
   servo.write(65);
@@ -564,8 +613,9 @@ bool checkForObstacles(){
   bool found = false;
 
   //Since the ultrasonic occasionally produces odd results, this attempts to filter out false hits
-  if(detected > 1){
+  if(detected > 0){
     found = true;
+//    Serial.println("DETECTED");
   }
   return found;
 }
@@ -588,7 +638,7 @@ int ultrasonicDistance(){
   pinMode(ULTRASONICPIN, INPUT);
 
   //Convert microseconds returned by pulseIn to inches
-  return pulseIn(ULTRASONICPIN, HIGH) / 74 / 2;
+  return pulseIn(ULTRASONICPIN, HIGH, 20000) / 74 / 2;
 }
 
 //At the moment this just checks if the coordinates are equal. For project 2, include photosensor readings.
