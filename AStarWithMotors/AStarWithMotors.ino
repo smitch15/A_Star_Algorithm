@@ -521,7 +521,7 @@ bool goForwardDetect(){
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(100);
     countSteps = i;
-    if (i % 100 == 0 && checkForObstacles()){
+    if (i % 300 == 0 && checkForObstacles()){
       for (int j = countSteps; j >= 0; j--){
         leftMotor->step(1, BACKWARD, INTERLEAVE);
         rightMotor->step(1, FORWARD, INTERLEAVE);
@@ -638,7 +638,7 @@ int ultrasonicDistance(){
   pinMode(ULTRASONICPIN, INPUT);
 
   //Convert microseconds returned by pulseIn to inches
-  return pulseIn(ULTRASONICPIN, HIGH, 20000) / 74 / 2;
+  return pulseIn(ULTRASONICPIN, HIGH, 8000) / 74 / 2;
 }
 
 //At the moment this just checks if the coordinates are equal. For project 2, include photosensor readings.
