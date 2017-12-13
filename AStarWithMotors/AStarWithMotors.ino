@@ -32,7 +32,7 @@ void goForward();
 void goBackward();
 //void sweepServo(Servo servo); //Temporarily obsolete, keep for P2 + source code
 bool checkForObstacles();
-int ultrasonicDistance();
+double ultrasonicDistance();
 bool checkForDestination(int destX, int destY, int srcX, int srcY);
 void dance();
 
@@ -99,7 +99,7 @@ void setup() {
   servo.write(90);
 
   //Set up ultrasonic
-  pinMode(ULTRASONICPIN, OUTPUT);
+  //pinMode(ULTRASONICPIN, OUTPUT);
 
   //Build path with A*
   aStar(srcXandY[0], srcXandY[1]);
@@ -120,11 +120,11 @@ void setup() {
 //    Serial.println(micros() - time1);
 //  }
 
-//  //Debug move forward detect
-//  for (int i = 0; i < 4; i++){
-//    goForwardDetect();
-//  }
-//  while(1);
+  //Debug move forward detect
+  for (int i = 0; i < 4; i++){
+    goForwardDetect();
+  }
+  while(1);
 
 }
 
@@ -527,12 +527,12 @@ bool goForwardDetect(){
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(100);
     countSteps = i;
-    if (i % 100 == 0 && checkForObstacles()){
-      for (int j = countSteps; j >= 0; j--){
-        leftMotor->step(1, BACKWARD, INTERLEAVE);
-        rightMotor->step(1, FORWARD, INTERLEAVE);
-        delayMicroseconds(100);
-      }
+    if (checkForObstacles()){
+//      for (int j = countSteps; j >= 0; j--){
+//        leftMotor->step(1, BACKWARD, INTERLEAVE);
+//        rightMotor->step(1, FORWARD, INTERLEAVE);
+//        delayMicroseconds(100);
+//      }
       objectDetected = false;
       return true;
     }
@@ -589,9 +589,10 @@ bool checkForObstacles(){
 
   //Check if obstacle is in the way
   if(ultrasonicDistance() <= 4.0){
+    Serial.println("OBJECT DETECTED");
       detected++;
   }
-
+ Serial.println("here");
   //Keep commented code for p2
   /*//Rotate servo from 90 - 115 degrees
   servo.write(115);
