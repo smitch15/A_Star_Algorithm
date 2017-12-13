@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <Servo.h>
+#include <NewPing.h>
 
 #define OBSTACLE_SIZE 18
 
@@ -15,8 +16,13 @@
 #define LED1PIN 2
 #define LED2PIN 3
 #define SERVOPIN 4
-#define ULTRASONICPIN 5
+//#define ULTRASONICPIN 5
 #define PHOTOPIN 0
+#define TRIGGER_PIN 11
+#define ECHO_PIN 12
+#define MAX_DISTANCE 10 // 10cm is ~4inches
+
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
 
 void aStar(int sourceX, int SourceY);
 void turnLeft();
@@ -521,7 +527,7 @@ bool goForwardDetect(){
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(100);
     countSteps = i;
-    if (i % 300 == 0 && checkForObstacles()){
+    if (i % 100 == 0 && checkForObstacles()){
       for (int j = countSteps; j >= 0; j--){
         leftMotor->step(1, BACKWARD, INTERLEAVE);
         rightMotor->step(1, FORWARD, INTERLEAVE);
@@ -582,7 +588,7 @@ bool checkForObstacles(){
 //  servo.write(90);
 
   //Check if obstacle is in the way
-  if(ultrasonicDistance() <= 4){
+  if(ultrasonicDistance() <= 4.0){
       detected++;
   }
 
@@ -621,24 +627,15 @@ bool checkForObstacles(){
 }
 
 //Returns distance from ultrasonic sensor to nearest obstacle in inches
-int ultrasonicDistance(){
-  //Set ultrasonic to output to activate it
-  pinMode(ULTRASONICPIN, OUTPUT);
-
-  //Ensure clean HIGH pulse
-  digitalWrite(ULTRASONICPIN, LOW);
-  delayMicroseconds(2);
-
-  //Activate ultrasonic with 5us HIGH pulse
-  digitalWrite(ULTRASONICPIN, HIGH);
-  delayMicroseconds(5);
-  digitalWrite(ULTRASONICPIN, LOW);
-
-  //Swap ultrasonic pin mode to "catch" echo
-  pinMode(ULTRASONICPIN, INPUT);
-
-  //Convert microseconds returned by pulseIn to inches
-  return pulseIn(ULTRASONICPIN, HIGH, 8000) / 74 / 2;
+double ultrasonicDistance(){
+  unsigned int uS = sonar.ping_cm();
+  
+//  Serial.print(uS);
+//  Serial.println("cm");
+  double inches = uS * 0.393701;
+  return inches;
+//  Serial.print(inches);
+//  Serial.println("inches");
 }
 
 //At the moment this just checks if the coordinates are equal. For project 2, include photosensor readings.
