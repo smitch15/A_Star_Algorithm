@@ -35,6 +35,7 @@ bool checkForObstacles();
 double ultrasonicDistance();
 bool checkForDestination(int destX, int destY, int srcX, int srcY);
 void dance();
+bool photoDetect();
 
 //Class for keeping track of nodes in graph
 class Node{
@@ -88,6 +89,9 @@ void setup() {
   rightMotor->setSpeed(500);
   Wire.setClock(400000);
 
+  // light sensor
+  pinMode(PHOTOPIN, INPUT);
+  
   //Turn on LEDs
   pinMode(LED1PIN, OUTPUT);
   pinMode(LED2PIN, OUTPUT);
@@ -120,11 +124,18 @@ void setup() {
 //    Serial.println(micros() - time1);
 //  }
 
-  //Debug move forward detect
-  for (int i = 0; i < 4; i++){
-    goForwardDetect();
-  }
-  while(1);
+//  //Debug move forward detect
+//  for (int i = 0; i < 4; i++){
+//    goForwardDetect();
+//  }
+//  while(1);
+
+
+////  //Debug photo detect
+//while(1){
+//  photoDetect();
+//}
+
 
 }
 
@@ -527,16 +538,16 @@ bool goForwardDetect(){
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(100);
     countSteps = i;
-    if (checkForObstacles()){
-//      for (int j = countSteps; j >= 0; j--){
-//        leftMotor->step(1, BACKWARD, INTERLEAVE);
-//        rightMotor->step(1, FORWARD, INTERLEAVE);
-//        delayMicroseconds(100);
-//      }
-      objectDetected = false;
-      return true;
+    if (i % 70){
+      if(checkForObstacles() || photoDetect()){
+        for (int j = countSteps; j >= 0; j--){
+          leftMotor->step(1, BACKWARD, INTERLEAVE);
+          rightMotor->step(1, FORWARD, INTERLEAVE);
+          delayMicroseconds(100);
+        }
+        return true;
+      }
     }
-    
   }
   return false;
 }
@@ -588,11 +599,12 @@ bool checkForObstacles(){
 //  servo.write(90);
 
   //Check if obstacle is in the way
-  if(ultrasonicDistance() <= 4.0){
-    Serial.println("OBJECT DETECTED");
+  double dist = ultrasonicDistance();
+  if(dist <= 4.0 && dist > 0.0){
+//    Serial.println("OBJECT DETECTED");
       detected++;
   }
- Serial.println("here");
+// Serial.println("here");
   //Keep commented code for p2
   /*//Rotate servo from 90 - 115 degrees
   servo.write(115);
@@ -634,6 +646,7 @@ double ultrasonicDistance(){
 //  Serial.print(uS);
 //  Serial.println("cm");
   double inches = uS * 0.393701;
+  Serial.println(inches);
   return inches;
 //  Serial.print(inches);
 //  Serial.println("inches");
@@ -671,5 +684,22 @@ void dance(){
   doA180();
   leftMotor->setSpeed(100);
   rightMotor->setSpeed(100);
+}
+int countPhoto = 0;
+bool photoDetect(){
+  bool darkDetected = false;
+  int photoVal = analogRead(PHOTOPIN);
+  Serial.println(photoVal);
+  if (countPhoto >= 5){
+    Serial.print("DETECTED");
+    countPhoto = 0;
+    return true;
+  }
+  if (photoVal < 5){
+    countPhoto++;
+  }
+  
+  Serial.print("not detected");
+  return false;
 }
 
