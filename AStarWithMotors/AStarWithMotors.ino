@@ -10,7 +10,7 @@
 #include <Servo.h>
 #include <NewPing.h>
 
-#define OBSTACLE_SIZE 18
+#define OBSTACLE_SIZE 6
 
 //Define pins
 #define LED1PIN 2
@@ -62,8 +62,8 @@ Node graph[8][13];
 Servo servo;
 
 //Set source and destination
-byte srcXandY[] = {2,2};
-byte destXandY[] = {5,7};
+byte srcXandY[] = {1,1};
+byte destXandY[] = {0,9};
 
 //Array for x,y of nodes in path
 byte inPath[255];
@@ -286,8 +286,8 @@ void loop() {
 
 void aStar(int sourceX, int sourceY){
   //Set obstacle x's and y's 
-  const PROGMEM uint8_t obstacleX[] = {1,1,1,2,2,3,3,3,3,4,4,5,7,7,7,7,7,7};
-  const PROGMEM uint8_t obstacleY[] = {1,2,3,3,6,1,2,3,6,5,6,5,0,1,2,3,4,5};
+  const PROGMEM uint8_t obstacleX[] = {2,2,1,2,3,5};
+  const PROGMEM uint8_t obstacleY[] = {2,3,6,6,6,6};
   
   //Set all g and h costs of each node in graph to infinity(255)
   for (byte i = 0; i < 8; i++){     // 0 - 7 for x
@@ -496,7 +496,7 @@ void aStar(int sourceX, int sourceY){
 
 //Turn 90 degrees right
 void turnRight(){
-  for(int i = 0; i < 213; i++){
+  for(int i = 0; i < 211; i++){
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
     delayMicroseconds(250);
@@ -506,7 +506,7 @@ void turnRight(){
 
 //TUrn 90 degrees left
 void turnLeft(){
-  for(int i = 0; i < 213; i++){
+  for(int i = 0; i < 210; i++){
     leftMotor->step(1, BACKWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(250);
