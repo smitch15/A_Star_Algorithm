@@ -10,7 +10,7 @@
 #include <Servo.h>
 #include <NewPing.h>
 
-#define OBSTACLE_SIZE 6
+#define OBSTACLE_SIZE 4
 
 //Define pins
 #define LED1PIN 2
@@ -34,8 +34,8 @@ void goBackward();
 bool checkForObstacles();
 double ultrasonicDistance();
 bool checkForDestination(int destX, int destY, int srcX, int srcY);
-void dance();
 bool photoDetect();
+void dance();
 
 //Class for keeping track of nodes in graph
 class Node{
@@ -62,13 +62,13 @@ Node graph[8][13];
 Servo servo;
 
 //Set source and destination
-byte srcXandY[] = {1,1};
-byte destXandY[] = {0,9};
+byte srcXandY[] = {0,1};
+byte destXandY[] = {3,3};
 
 //Array for x,y of nodes in path
 byte inPath[255];
 
-//Holds direction relative to graph. 0 = N, 1 = E, 2 = S, 3 = W
+//Holds bot direction relative to graph. 0 = N, 1 = E, 2 = S, 3 = W
 byte initDir = 0;
 
 // Create the motor shield object with default I2C address
@@ -78,6 +78,12 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_StepperMotor *leftMotor = AFMS.getStepper(200, 1);
 //200 steps per revolution (1.8 degrees/step) to M3 and M4 (port 2)
 Adafruit_StepperMotor *rightMotor = AFMS.getStepper(200, 2);
+
+
+//Global variable for # of times photodetector has detected something
+int countPhoto = 0;
+//Global bool for if destination has been detected through photosensor
+bool darkDetected = false;
 
 void setup() {
   //Initialize Serial object for debug/info
@@ -131,10 +137,11 @@ void setup() {
 //  while(1);
 
 
-////  //Debug photo detect
-//while(1){
-//  photoDetect();
-//}
+//  //Debug photo detect
+//  while(1){
+//    photoDetect();
+//    delay(500);
+//  }
 
 
 }
@@ -286,8 +293,8 @@ void loop() {
 
 void aStar(int sourceX, int sourceY){
   //Set obstacle x's and y's 
-  const PROGMEM uint8_t obstacleX[] = {2,2,1,2,3,5};
-  const PROGMEM uint8_t obstacleY[] = {2,3,6,6,6,6};
+  const PROGMEM uint8_t obstacleX[] = {0,2,2,2};
+  const PROGMEM uint8_t obstacleY[] = {2,0,2,3};
   
   //Set all g and h costs of each node in graph to infinity(255)
   for (byte i = 0; i < 8; i++){     // 0 - 7 for x
@@ -538,8 +545,18 @@ bool goForwardDetect(){
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(100);
     countSteps = i;
-    if (i % 70){
-      if(checkForObstacles() || photoDetect()){
+    if ((i % 70) == 0){
+      if(photoDetect()){
+        for (int j = countSteps; j >= 0; j--){
+          leftMotor->step(1, BACKWARD, INTERLEAVE);
+          rightMotor->step(1, FORWARD, INTERLEAVE);
+          delayMicroseconds(100);
+        }
+        return true;
+      }
+    }
+    if ((i % 300) == 0){
+      if(checkForObstacles()){
         for (int j = countSteps; j >= 0; j--){
           leftMotor->step(1, BACKWARD, INTERLEAVE);
           rightMotor->step(1, FORWARD, INTERLEAVE);
@@ -655,9 +672,41 @@ double ultrasonicDistance(){
 //At the moment this just checks if the coordinates are equal. For project 2, include photosensor readings.
 bool checkForDestination(int destX, int destY, int srcX, int srcY){
   if((destX == srcX) && (destY == srcY)){
-    Serial.println("Destination found!");
+    bool atDest = false;
+    for(int i = 0; i < 3; i++){
+       if(photoDetect()){
+        atDest = true;
+       }
+    }
+    atDest ? Serial.println("Destination found!") : NULL;
+    return atDest;
+  }
+  return false;
+}
+
+//Checks photosensor value. Returns true on detection of destination node marked withblack tape
+bool photoDetect(){
+  int photoVal = analogRead(PHOTOPIN);
+  if (countPhoto >= 2 || darkDetected){
+    Serial.print("Detected: ");
+    Serial.println(photoVal);
+    darkDetected = true;
+    countPhoto = 0;
+    if (photoVal < 8){
+      countPhoto++;
+    }
+    else{
+      darkDetected = false;
+    }
     return true;
   }
+  
+  if(photoVal < 8){
+    countPhoto++;
+  }
+  
+  Serial.print("Not detected: ");
+  Serial.println(photoVal);
   return false;
 }
 
@@ -684,22 +733,5 @@ void dance(){
   doA180();
   leftMotor->setSpeed(100);
   rightMotor->setSpeed(100);
-}
-int countPhoto = 0;
-bool photoDetect(){
-  bool darkDetected = false;
-  int photoVal = analogRead(PHOTOPIN);
-  Serial.println(photoVal);
-  if (countPhoto >= 5){
-    Serial.print("DETECTED");
-    countPhoto = 0;
-    return true;
-  }
-  if (photoVal < 5){
-    countPhoto++;
-  }
-  
-  Serial.print("not detected");
-  return false;
 }
 
