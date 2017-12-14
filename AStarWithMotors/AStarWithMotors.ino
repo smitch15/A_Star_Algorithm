@@ -137,7 +137,7 @@ void setup() {
 //  while(1);
 
 
-//  //Debug photo detect
+  //Debug photo detect
 //  while(1){
 //    photoDetect();
 //    delay(500);
@@ -676,9 +676,9 @@ bool checkForDestination(int destX, int destY, int srcX, int srcY){
     for(int i = 0; i < 3; i++){
        if(photoDetect()){
         atDest = true;
+        Serial.println("Destination found!");
        }
     }
-    atDest ? Serial.println("Destination found!") : NULL;
     return atDest;
   }
   return false;
