@@ -10,7 +10,7 @@
 #include <Servo.h>
 #include <NewPing.h>
 
-#define OBSTACLE_SIZE 6
+#define OBSTACLE_SIZE 0
 
 //Define pins
 #define LED1PIN 2
@@ -62,7 +62,7 @@ Node graph[8][13];
 Servo servo;
 
 //Set source and destination
-byte srcXandY[] = {0, 0};
+byte srcXandY[] = {2, 1};
 byte destXandY[] = {2, 5};
 
 //Array for x,y of nodes in path
@@ -138,10 +138,10 @@ void setup() {
 
 
   //Debug photo detect
-//    while(1){
-//      photoDetect();
-//      delay(500);
-//    }
+  //    while(1){
+  //      photoDetect();
+  //      delay(50);
+  //    }
 
   //Debug catch
   //while(1);
@@ -255,58 +255,54 @@ void loop() {
 
     //Check if next node is an obstacle
     if (goForwardDetect()) {
-      //Add the obstacle
-      graph[inPath[i - 2]][inPath[i - 1]].infoBits |= 0b00000100;
-
-      //Reset the graph
-      for (byte j = 0; j < 8; j++) {
-        for (byte k = 0; k < 13; k++) {
-          graph[j][k].infoBits &= 0b00000101;
-        }
-      }
-
-      //Update source
-      graph[currentX][currentY].infoBits |= 0b00000010;
-
-      //Dynamic replan with new obstacle
-      aStar(currentX, currentY);
+      //      //Add the obstacle
+      //      graph[inPath[i - 2]][inPath[i - 1]].infoBits |= 0b00000100;
+      //
+      //      //Reset the graph
+      //      for (byte j = 0; j < 8; j++) {
+      //        for (byte k = 0; k < 13; k++) {
+      //          graph[j][k].infoBits &= 0b00000101;
+      //        }
+      //      }
+      //
+      //      //Update source
+      //      graph[currentX][currentY].infoBits |= 0b00000010;
+      //
+      //      //Dynamic replan with new obstacle
+      //      aStar(currentX, currentY);
       i = inPath[0] * 2 - 1;
     }
 
     //If not an obstacle, go forward
     else {
-      currentX = inPath[i - 2];
-      currentY = inPath[i - 1];
-      if (checkForDestination(destXandY[0], destXandY[1], currentX, currentY)) {
-        Serial.println("Arrived at destination!");
-        atDest = true;
-        goto finished;
-      }
-
-      //Reset the graph
-      for (byte j = 0; j < 8; j++) {
-        for (byte k = 0; k < 13; k++) {
-          graph[j][k].infoBits &= 0b00000101;
-        }
-      }
-
-      //Update source
-      graph[currentX][currentY].infoBits |= 0b00000010;
-
-      //Dynamic replan with new obstacles
-      aStar(currentX, currentY);
-      i = inPath[0] * 2 - 1;
+      //
+      //      //Reset the graph
+      //      for (byte j = 0; j < 8; j++) {
+      //        for (byte k = 0; k < 13; k++) {
+      //          graph[j][k].infoBits &= 0b00000101;
+      //        }
+      //      }
+      //
+      //      //Update source
+      //      graph[currentX][currentY].infoBits |= 0b00000010;
+      //
+      //      //Dynamic replan with new obstacles
+      //      aStar(currentX, currentY);
+      //      i = inPath[0] * 2 - 1;
+      i -= 2;
     }
   }
 
-  //goto for arrival at destination
-  finished:
+  // arrival at destination
   while (atDest) {
     dance();
   }
-  while(!atDest){
+
+  // WHAT ARE THOSE
+  while (!atDest) {
     doA180();
   }
+
 }
 
 
@@ -521,7 +517,7 @@ void aStar(int sourceX, int sourceY) {
 
 //Turn 90 degrees right
 void turnRight() {
-  for (int i = 0; i < 209; i++) {
+  for (int i = 0; i < 211; i++) {
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
     delayMicroseconds(250);
@@ -537,7 +533,6 @@ void turnLeft() {
     delayMicroseconds(250);
   }
   rightMotor->step(1, BACKWARD, INTERLEAVE);
-  //  rightMotor->step(1, BACKWARD, INTERLEAVE);
 }
 
 ////TUrn 90 degrees left
@@ -566,34 +561,70 @@ bool goForwardDetect() {
     delayMicroseconds(100);
     countSteps = i;
     //servo.write(i % 180);
-    if ((i % 70) == 0) {
-      if (photoDetect() || checkForObstacles()) {
+    if (i % 70) {
+      if (checkForObstacles() || photoDetect()) {
         for (int j = countSteps; j >= 0; j--) {
           leftMotor->step(1, BACKWARD, INTERLEAVE);
           rightMotor->step(1, FORWARD, INTERLEAVE);
           delayMicroseconds(100);
         }
-        return true;
+        objectDetected = true;
+        i = 1128;
       }
+    }
+  }
+  if(objectDetected){
+      switch (initDir) {
+      case 0:
+        graph[currentX][currentY + 1].infoBits |= 0b100;
+        break;
+      case 1:
+        graph[currentX + 1][currentY].infoBits |= 0b100;
+        break;
+      case 2:
+        graph[currentX][currentY - 1].infoBits |= 0b100;
+        break;
+      case 3:
+        graph[currentX + 1][currentY].infoBits |= 0b100;
+        break;
+      default:
+        break;
+    }
+  }
+  else{
+      switch (initDir) {
+      case 0:
+        currentY++;
+        break;
+      case 1:
+        currentX++;
+        break;
+      case 2:
+        currentY--;
+        break;
+      case 3:
+        currentX--;
+        break;
+      default:
+        break;
     }
   }
   servo.write(0);
   delay(250);
-  bool needReplan = false;
   if (checkForObstacles()) {
-    needReplan = true;
+    objectDetected = true;
     switch (initDir) {
       case 0:
-        graph[currentX - 1][currentY].infoBits |= 0b100;
-        break;
-      case 1:
-        graph[currentX][currentY + 1].infoBits |= 0b100;
-        break;
-      case 2:
         graph[currentX + 1][currentY].infoBits |= 0b100;
         break;
-      case 3:
+      case 1:
         graph[currentX][currentY - 1].infoBits |= 0b100;
+        break;
+      case 2:
+        graph[currentX - 1][currentY].infoBits |= 0b100;
+        break;
+      case 3:
+        graph[currentX][currentY + 1].infoBits |= 0b100;
         break;
       default:
         break;
@@ -602,19 +633,19 @@ bool goForwardDetect() {
   servo.write(180);
   delay(400);
   if (checkForObstacles()) {
-    needReplan = true;
+    objectDetected = true;
     switch (initDir) {
       case 0:
-        graph[currentX + 1][currentY].infoBits |= 0b100;
-        break;
-      case 1:
-        graph[currentX][currentY - 1].infoBits |= 0b100;
-        break;
-      case 2:
         graph[currentX - 1][currentY].infoBits |= 0b100;
         break;
-      case 3:
+      case 1:
         graph[currentX][currentY + 1].infoBits |= 0b100;
+        break;
+      case 2:
+        graph[currentX + 1][currentY].infoBits |= 0b100;
+        break;
+      case 3:
+        graph[currentX][currentY - 1].infoBits |= 0b100;
         break;
       default:
         break;
@@ -652,7 +683,23 @@ bool goForwardDetect() {
   //      }
   //    }
   //  }
-  return false;
+
+  if (objectDetected) {
+    //Reset the graph
+    for (byte j = 0; j < 8; j++) {
+      for (byte k = 0; k < 13; k++) {
+        graph[j][k].infoBits &= 0b00000101;
+      }
+    }
+
+    //Update source
+    graph[currentX][currentY].infoBits |= 0b00000010;
+
+    //Dynamic replan with new obstacles
+    aStar(currentX, currentY);
+    return objectDetected;
+  }
+
 }
 
 //Move forward one foot
@@ -748,7 +795,7 @@ bool checkForObstacles() {
 double ultrasonicDistance() {
   unsigned int uS = sonar.ping_cm();
   double inches = uS * 0.393701;
-  Serial.println(inches);
+  //  Serial.println(inches);
   return inches;
 }
 
@@ -766,30 +813,61 @@ bool checkForDestination(int destX, int destY, int srcX, int srcY) {
   return atDest;
 }
 
+//bool photoDetect(){
+//  bool darkDetected = false;
+//  int photoVal = analogRead(PHOTOPIN);
+//  Serial.println(photoVal);
+//  if (countPhoto >= 5){
+//    Serial.print("DETECTED");
+//    countPhoto = 0;
+//    return true;
+//  }
+//  if (photoVal < 5){
+//    countPhoto++;
+//  }
+//
+//  Serial.print("not detected");
+//  return false;
+//}
 //Checks photosensor value. Returns true on detection of destination node marked with black tape
 bool photoDetect() {
+  bool darkDetected = false;
   int photoVal = analogRead(PHOTOPIN);
-  if (countPhoto >= 2 || darkDetected) {
-    Serial.print("Detected: ");
-    Serial.println(photoVal);
-    darkDetected = true;
+  Serial.println(photoVal);
+  if (countPhoto >= 5) {
+    Serial.print("DETECTED");
     countPhoto = 0;
-    if (photoVal < 7) {
-      countPhoto++;
-    }
-    else {
-      darkDetected = false;
-    }
     return true;
   }
-
-  if (photoVal < 7) {
+  if (photoVal < 5) {
     countPhoto++;
   }
 
-  Serial.print("Not detected: ");
-  Serial.println(photoVal);
+  Serial.print("not detected");
   return false;
+
+  //  int photoVal = analogRead(PHOTOPIN);
+  //  if (countPhoto >= 1 || darkDetected) {
+  //    Serial.print("Detected: ");
+  //    Serial.println(photoVal);
+  //    darkDetected = true;
+  //    countPhoto = 0;
+  //    if (photoVal < 9) {
+  //      countPhoto++;
+  //    }
+  //    else {
+  //      darkDetected = false;
+  //    }
+  //    return true;
+  //  }
+  //
+  //  if (photoVal < 9) {
+  //    countPhoto++;
+  //  }
+  //
+  //  Serial.print("Not detected: ");
+  //  Serial.println(photoVal);
+  //  return false;
 }
 
 //The most important function
