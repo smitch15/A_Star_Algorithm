@@ -10,7 +10,7 @@
 #include <Servo.h>
 #include <NewPing.h>
 
-#define OBSTACLE_SIZE 4
+#define OBSTACLE_SIZE 6
 
 //Define pins
 #define LED1PIN 2
@@ -38,21 +38,21 @@ bool photoDetect();
 void dance();
 
 //Class for keeping track of nodes in graph
-class Node{
- public:
-  byte parentXY;
-  byte hCost;
-  byte gCost;
-  byte infoBits = 0;
-  /*Info bits is used as follows:
-      -infoBits[0] = If node is currently in the queue
-      -infoBits[1] = If node has been through the queue yet
-      -infoBits<2:3> = Direction of next node in path
-      -infoBits[4] = If node is in path
-      -infoBits[5] = If node is obstacle
-      -infoBits[6] = If node is source
-      -infoBits[7] = If node is destination
-   */
+class Node {
+  public:
+    byte parentXY;
+    byte hCost;
+    byte gCost;
+    byte infoBits = 0;
+    /*Info bits is used as follows:
+        -infoBits[0] = If node is currently in the queue
+        -infoBits[1] = If node has been through the queue yet
+        -infoBits<2:3> = Direction of next node in path
+        -infoBits[4] = If node is in path
+        -infoBits[5] = If node is obstacle
+        -infoBits[6] = If node is source
+        -infoBits[7] = If node is destination
+    */
 };
 
 //Initialize graph
@@ -62,8 +62,8 @@ Node graph[8][13];
 Servo servo;
 
 //Set source and destination
-byte srcXandY[] = {0,1};
-byte destXandY[] = {3,3};
+byte srcXandY[] = {0, 0};
+byte destXandY[] = {2, 5};
 
 //Array for x,y of nodes in path
 byte inPath[255];
@@ -72,7 +72,7 @@ byte inPath[255];
 byte initDir = 0;
 
 // Create the motor shield object with default I2C address
-Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
+Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
 //200 steps per revolution (1.8 degrees/step) to M1 and M2 (port 1)
 Adafruit_StepperMotor *leftMotor = AFMS.getStepper(200, 1);
@@ -97,7 +97,7 @@ void setup() {
 
   // light sensor
   pinMode(PHOTOPIN, INPUT);
-  
+
   //Turn on LEDs
   pinMode(LED1PIN, OUTPUT);
   pinMode(LED2PIN, OUTPUT);
@@ -114,54 +114,55 @@ void setup() {
   //Build path with A*
   aStar(srcXandY[0], srcXandY[1]);
 
-//  //Debug Turn
-//  delay(1000);
-//  for(int i = 0; i < 4; i++){
-////    turnLeftMicro();
-//  turnLeft();
-//  }
-//  while(1);
+  //  //Debug Turn
+  //  delay(1000);
+  //  for(int i = 0; i < 4; i++){
+  ////    turnLeftMicro();
+  //  turnLeft();
+  //  }
+  //  while(1);
 
-//  //Debug move forward
-//  while (1){
-//    goForward();
-//    unsigned long time1 = micros();
-//    checkForObstacles();
-//    Serial.println(micros() - time1);
-//  }
+  //  //Debug move forward
+  //  while (1){
+  //    goForward();
+  //    unsigned long time1 = micros();
+  //    checkForObstacles();
+  //    Serial.println(micros() - time1);
+  //  }
 
-//  //Debug move forward detect
-//  for (int i = 0; i < 4; i++){
-//    goForwardDetect();
-//  }
-//  while(1);
+  //  //Debug move forward detect
+  //  for (int i = 0; i < 4; i++){
+  //    goForwardDetect();
+  //  }
+  //  while(1);
 
 
   //Debug photo detect
-//  while(1){
-//    photoDetect();
-//    delay(500);
-//  }
+//    while(1){
+//      photoDetect();
+//      delay(500);
+//    }
 
-
+  //Debug catch
+  //while(1);
 }
-
+byte currentX = srcXandY[0];
+byte currentY = srcXandY[1];
 void loop() {
   Serial.println("Entering loop");
   //POINT OF POTENTIAL TOM FOOLERY --> check format of array
   //Loop through array, check next node in path, check if obstacle, if not then move to it. Else replan
-  byte currentX = srcXandY[0];
-  byte currentY = srcXandY[1];
+
   bool atDest = true;
-  for (int i = inPath[0]*2 - 1; i >= 3; i = i){
+  for (int i = inPath[0] * 2 - 1; i >= 3; i = i) {
     Serial.print(currentX); Serial.print(", "); Serial.println(currentY);
     //If x's are different
-    if (inPath[i] != inPath[i-2]){
+    if (inPath[i] != inPath[i - 2]) {
       //Needs to go left
-      if (inPath[i] > inPath[i-2]){
+      if (inPath[i] > inPath[i - 2]) {
         //Orient bot
-        if (initDir != 3){
-          switch(initDir){
+        if (initDir != 3) {
+          switch (initDir) {
             case 0:
               turnLeft();
               break;
@@ -179,12 +180,12 @@ void loop() {
         //Update direction
         initDir = 3;
       }
-      
+
       //Needs to go right
-      else{
+      else {
         //Orient bot
-        if (initDir != 1){
-          switch(initDir){
+        if (initDir != 1) {
+          switch (initDir) {
             case 0:
               turnRight();
               break;
@@ -205,12 +206,12 @@ void loop() {
     }
 
     //If y's are different
-    else{
+    else {
       //Needs to go up
-      if (inPath[i+1] < inPath[i-1]){
+      if (inPath[i + 1] < inPath[i - 1]) {
         //Orient bot
-        if (initDir != 0){
-          switch(initDir){
+        if (initDir != 0) {
+          switch (initDir) {
             case 3:
               turnRight();
               break;
@@ -224,16 +225,16 @@ void loop() {
               break;
           }
         }
-        
+
         //Update direction
         initDir = 0;
       }
 
       //Needs to go down
-      else{
+      else {
         //Orient bot
-        if (initDir != 2){
-          switch(initDir){
+        if (initDir != 2) {
+          switch (initDir) {
             case 0:
               doA180();
               break;
@@ -253,68 +254,87 @@ void loop() {
     }
 
     //Check if next node is an obstacle
-    if(goForwardDetect()){
+    if (goForwardDetect()) {
       //Add the obstacle
       graph[inPath[i - 2]][inPath[i - 1]].infoBits |= 0b00000100;
-      
+
       //Reset the graph
-      for(byte j = 0; j < 8; j++){
-        for(byte k = 0; k < 13; k++){
+      for (byte j = 0; j < 8; j++) {
+        for (byte k = 0; k < 13; k++) {
           graph[j][k].infoBits &= 0b00000101;
         }
       }
 
       //Update source
       graph[currentX][currentY].infoBits |= 0b00000010;
-      
+
       //Dynamic replan with new obstacle
       aStar(currentX, currentY);
       i = inPath[0] * 2 - 1;
     }
 
     //If not an obstacle, go forward
-    else{
-//        goForward();
-        currentX = inPath[i - 2];
-        currentY = inPath[i - 1];
-        if(checkForDestination(destXandY[0], destXandY[1], currentX, currentY)){
-          Serial.println("Arrived at destination!");
-          atDest = true;
+    else {
+      currentX = inPath[i - 2];
+      currentY = inPath[i - 1];
+      if (checkForDestination(destXandY[0], destXandY[1], currentX, currentY)) {
+        Serial.println("Arrived at destination!");
+        atDest = true;
+        goto finished;
+      }
+
+      //Reset the graph
+      for (byte j = 0; j < 8; j++) {
+        for (byte k = 0; k < 13; k++) {
+          graph[j][k].infoBits &= 0b00000101;
         }
-        i-=2;
+      }
+
+      //Update source
+      graph[currentX][currentY].infoBits |= 0b00000010;
+
+      //Dynamic replan with new obstacles
+      aStar(currentX, currentY);
+      i = inPath[0] * 2 - 1;
     }
   }
-  while(atDest){
+
+  //goto for arrival at destination
+  finished:
+  while (atDest) {
     dance();
+  }
+  while(!atDest){
+    doA180();
   }
 }
 
 
 
-void aStar(int sourceX, int sourceY){
-  //Set obstacle x's and y's 
-  const PROGMEM uint8_t obstacleX[] = {0,2,2,2};
-  const PROGMEM uint8_t obstacleY[] = {2,0,2,3};
-  
+void aStar(int sourceX, int sourceY) {
+  //Set obstacle x's and y's
+  const PROGMEM uint8_t obstacleX[] = {3, 3, 3, 3, 3, 3};
+  const PROGMEM uint8_t obstacleY[] = {0, 1, 2, 3, 4, 5};
+
   //Set all g and h costs of each node in graph to infinity(255)
-  for (byte i = 0; i < 8; i++){     // 0 - 7 for x
-    for (byte j = 0; j < 13; j++){  // 0 - 12 for y 
-        graph[i][j].gCost = 255;
-        graph[i][j].hCost = 255;
+  for (byte i = 0; i < 8; i++) {    // 0 - 7 for x
+    for (byte j = 0; j < 13; j++) { // 0 - 12 for y
+      graph[i][j].gCost = 255;
+      graph[i][j].hCost = 255;
     }
   }
-  
+
   //Set start node g cost to zero
   graph[sourceX][sourceY].gCost = 0;
-  
+
   //Set heuristic value of start node
   graph[sourceX][sourceY].hCost = abs((destXandY[0] - sourceX)) + abs((destXandY[1] - sourceY));
 
   //Put the start node in the queue, set the source node bit
-  graph[sourceX][sourceY].infoBits |= 0b10001010; 
-    
+  graph[sourceX][sourceY].infoBits |= 0b10001010;
+
   //Set the info bit for known node obstacles
-  for (byte i = 0; i < OBSTACLE_SIZE; i++){
+  for (byte i = 0; i < OBSTACLE_SIZE; i++) {
     (graph[obstacleX[i]][obstacleY[i]]).infoBits |= 0b100;
   }
 
@@ -329,54 +349,52 @@ void aStar(int sourceX, int sourceY){
   graph[sourceX][sourceY].infoBits |= 0b000000;
 
 
-  
+
   //Start A star algorithm
   //Setup
   bool queueEmpty = true;
-  for (byte i = 0; i < 8; i++){
-    for (byte j = 0; j < 13; j++){
-      if (graph[i][j].infoBits & 0b10000000){
+  for (byte i = 0; i < 8; i++) {
+    for (byte j = 0; j < 13; j++) {
+      if (graph[i][j].infoBits & 0b10000000) {
         queueEmpty = false;
       }
     }
   }
-  
+
   //Algorithm start
-  while (!queueEmpty){
+  while (!queueEmpty) {
     Node *current;
     uint16_t minScore = 510;
     byte xMin, yMin = 17;
-    for (byte i = 0; i < 8; i++){
-      for (byte j = 0; j < 13; j++){
-        if (graph[i][j].hCost + graph[i][j].gCost < minScore && 
-        graph[i][j].infoBits & 0b10000000){
-          xMin = i; 
+    for (byte i = 0; i < 8; i++) {
+      for (byte j = 0; j < 13; j++) {
+        if (graph[i][j].hCost + graph[i][j].gCost < minScore &&
+            graph[i][j].infoBits & 0b10000000) {
+          xMin = i;
           yMin = j;
           current = &graph[i][j];
           minScore = current->hCost + current->gCost;
         }
       }
     }
-    if (current->infoBits & 0b1){ // if current is destination
+    if (current->infoBits & 0b1) { // if current is destination
       byte sourceXY = (sourceX << 4) | sourceY;
       Serial.println();
-
-      Serial.println();
       Serial.println("Found Destination Node");
-      Serial.println(); 
+      Serial.println();
       byte count = 0;
-      byte index = 3; 
+      byte index = 3;
       inPath[1] = destXandY[0];
       inPath[2] = destXandY[1];
-      while (current->parentXY != sourceXY){
+      while (current->parentXY != sourceXY) {
         current->infoBits |= 0b1000; // add to path
         count++;
         inPath[index] = current->parentXY >> 4;
         index++;
-        inPath[index] = current->parentXY &0b1111;
+        inPath[index] = current->parentXY & 0b1111;
         index++;
         current = &(graph[current->parentXY >> 4][current->parentXY & 0b1111]);
-        if (current->infoBits & 0b1000){
+        if (current->infoBits & 0b1000) {
           Serial.println("ADDED TO PATH");
         }
         Serial.print(count);
@@ -392,8 +410,8 @@ void aStar(int sourceX, int sourceY){
         Serial.println();
       }
       inPath[0] = count + 2;
-      inPath[count*2+3] = sourceX;
-      inPath[count*2+4] = sourceY;
+      inPath[count * 2 + 3] = sourceX;
+      inPath[count * 2 + 4] = sourceY;
       Serial.print(count);
       Serial.println(" ADDED TO PATH");
       Serial.println("SUCCESS");
@@ -401,109 +419,109 @@ void aStar(int sourceX, int sourceY){
       //Debug
       Serial.println("AFTER A STAR");
       Serial.println("in path coords.");
-      for (int k = 0; k <= inPath[0] * 2; k++){
+      for (int k = 0; k <= inPath[0] * 2; k++) {
         Serial.print(inPath[k]);
-        if(k == (inPath[0] * 2)){
+        if (k == (inPath[0] * 2)) {
           Serial.println();
         }
-        else if((k % 2) == 1){
+        else if ((k % 2) == 1) {
           Serial.print(", ");
         }
-        else{
+        else {
           Serial.print("; ");
         }
       }
       Serial.println();
       return;
     }
-    
+
     //Remove min score from queue
     current->infoBits &= 0b01111111;  //Remove from queue bit
-    current->infoBits |= 0b01000000;  //Add to visited 
-    
+    current->infoBits |= 0b01000000;  //Add to visited
+
     ////////// setup for loop //////////////////////
-    //Check if neighbor is new, then add it to the open queue 
+    //Check if neighbor is new, then add it to the open queue
     //Not in the queue and not been visited
     Node *rightNeb, *leftNeb, *topNeb, *botNeb;
     Node* nebArr[4];
-    for (int i=0;i<4;i++){
+    for (int i = 0; i < 4; i++) {
       nebArr[i] = 0;
     }
     //Must initialize all the neighbors' direction bits
-    if (xMin != 7){
-      rightNeb = &graph[xMin+1][yMin];
+    if (xMin != 7) {
+      rightNeb = &graph[xMin + 1][yMin];
       rightNeb->infoBits |= 0b010000;
       nebArr[0] = rightNeb;
-      
+
     }
-    if (xMin != 0){
-      leftNeb = &graph[xMin-1][yMin];
+    if (xMin != 0) {
+      leftNeb = &graph[xMin - 1][yMin];
       leftNeb->infoBits |= 0b110000;
       nebArr[1] = leftNeb;
     }
-    if (yMin != 0){
-      topNeb = &graph[xMin][yMin-1];
+    if (yMin != 0) {
+      topNeb = &graph[xMin][yMin - 1];
       topNeb->infoBits |= 0b000000;
       nebArr[2] = topNeb;
     }
-    if (yMin != 12){
-      botNeb = &graph[xMin][yMin+1];
+    if (yMin != 12) {
+      botNeb = &graph[xMin][yMin + 1];
       botNeb->infoBits |= 0b100000;
       nebArr[3] = botNeb;
     }
     byte dist, h_offset;
-    for (int i=0;i<4;i++){
+    for (int i = 0; i < 4; i++) {
       if (nebArr[i] == 0)  continue;  // no neighbor
       if (nebArr[i]->infoBits & 0b100)  continue; // is an obstacle
       if (nebArr[i]->infoBits & 0b01000000) continue; // in closed set
-      if (!(nebArr[i]->infoBits & 0b10000000)) 
+      if (!(nebArr[i]->infoBits & 0b10000000))
         nebArr[i]->infoBits |= 0b10000000; // add to queue
-      
+
       //Update direction bits
       //Define the cost of each neighbor
-      switch (((current->infoBits & 0b110000) ^ (nebArr[i]->infoBits & 0b110000)) >> 4){
+      switch (((current->infoBits & 0b110000) ^ (nebArr[i]->infoBits & 0b110000)) >> 4) {
         case 0:
           dist = 1;
-//          current node stays the same direction
+          //          current node stays the same direction
           break;
         case 1:
           dist = 2;
-//          current->infoBits |= nebArr[i]->infoBits & 0b110000;
+          //          current->infoBits |= nebArr[i]->infoBits & 0b110000;
           break;
         case 2:
           dist = 3;
-//          current->infoBits |= nebArr[i]->infoBits & 0b110000;
+          //          current->infoBits |= nebArr[i]->infoBits & 0b110000;
           break;
         case 3:
           dist = 2;
-//          current->infoBits |= nebArr[i]->infoBits & 0b110000;
+          //          current->infoBits |= nebArr[i]->infoBits & 0b110000;
           break;
       }
       while (dist == 100) Serial.println("PROBLEM WITH DIST SWITCH STATEMENT");
       byte tent_cost = current->gCost + dist;
       if (tent_cost >= nebArr[i]->gCost)  continue;
       nebArr[i]->parentXY = (xMin << 4) | yMin;
-      
+
       nebArr[i]->gCost = tent_cost;
-      nebArr[i]->hCost = abs(destXandY[0] - xMin) + abs(destXandY[1] - yMin) -1;
-     
+      nebArr[i]->hCost = abs(destXandY[0] - xMin) + abs(destXandY[1] - yMin) - 1;
+
     }
 
     queueEmpty = true;
-    for (byte i = 0; i < 8; i++){
-      for (byte j = 0; j < 13; j++){
-        if (graph[i][j].infoBits & 0b10000000){
+    for (byte i = 0; i < 8; i++) {
+      for (byte j = 0; j < 13; j++) {
+        if (graph[i][j].infoBits & 0b10000000) {
           queueEmpty = false;
-        } 
+        }
       }
     }
-    
+
   }
 }
 
 //Turn 90 degrees right
-void turnRight(){
-  for(int i = 0; i < 211; i++){
+void turnRight() {
+  for (int i = 0; i < 209; i++) {
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
     delayMicroseconds(250);
@@ -512,13 +530,14 @@ void turnRight(){
 }
 
 //TUrn 90 degrees left
-void turnLeft(){
-  for(int i = 0; i < 210; i++){
-    leftMotor->step(1, BACKWARD, INTERLEAVE);
+void turnLeft() {
+  for (int i = 0; i < 211; i++) {
     rightMotor->step(1, BACKWARD, INTERLEAVE);
+    leftMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(250);
   }
-//  rightMotor->step(1, BACKWARD, INTERLEAVE);
+  rightMotor->step(1, BACKWARD, INTERLEAVE);
+  //  rightMotor->step(1, BACKWARD, INTERLEAVE);
 }
 
 ////TUrn 90 degrees left
@@ -531,33 +550,25 @@ void turnLeft(){
 //}
 
 //Turn counter-clockwise 180 degrees
-void doA180(){
+void doA180() {
   turnLeft();
   turnLeft();
 }
 
 //Move forward one foot
-bool goForwardDetect(){
+bool goForwardDetect() {
   bool objectDetected = false;
   int countSteps = 0;
-  for(int i = 0; i < 562; i++){
+  countPhoto = 0;
+  for (int i = 0; i < 1128; i++) {
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(100);
     countSteps = i;
-    if ((i % 70) == 0){
-      if(photoDetect()){
-        for (int j = countSteps; j >= 0; j--){
-          leftMotor->step(1, BACKWARD, INTERLEAVE);
-          rightMotor->step(1, FORWARD, INTERLEAVE);
-          delayMicroseconds(100);
-        }
-        return true;
-      }
-    }
-    if ((i % 300) == 0){
-      if(checkForObstacles()){
-        for (int j = countSteps; j >= 0; j--){
+    //servo.write(i % 180);
+    if ((i % 70) == 0) {
+      if (photoDetect() || checkForObstacles()) {
+        for (int j = countSteps; j >= 0; j--) {
           leftMotor->step(1, BACKWARD, INTERLEAVE);
           rightMotor->step(1, FORWARD, INTERLEAVE);
           delayMicroseconds(100);
@@ -566,12 +577,87 @@ bool goForwardDetect(){
       }
     }
   }
+  servo.write(0);
+  delay(250);
+  bool needReplan = false;
+  if (checkForObstacles()) {
+    needReplan = true;
+    switch (initDir) {
+      case 0:
+        graph[currentX - 1][currentY].infoBits |= 0b100;
+        break;
+      case 1:
+        graph[currentX][currentY + 1].infoBits |= 0b100;
+        break;
+      case 2:
+        graph[currentX + 1][currentY].infoBits |= 0b100;
+        break;
+      case 3:
+        graph[currentX][currentY - 1].infoBits |= 0b100;
+        break;
+      default:
+        break;
+    }
+  }
+  servo.write(180);
+  delay(400);
+  if (checkForObstacles()) {
+    needReplan = true;
+    switch (initDir) {
+      case 0:
+        graph[currentX + 1][currentY].infoBits |= 0b100;
+        break;
+      case 1:
+        graph[currentX][currentY - 1].infoBits |= 0b100;
+        break;
+      case 2:
+        graph[currentX - 1][currentY].infoBits |= 0b100;
+        break;
+      case 3:
+        graph[currentX][currentY + 1].infoBits |= 0b100;
+        break;
+      default:
+        break;
+    }
+  }
+  servo.write(90);
+  //    if(i == 0){
+  //      if(checkForObstacles()){
+  //        for (int j = countSteps; j >= 0; j--){
+  //          leftMotor->step(1, BACKWARD, INTERLEAVE);
+  //          rightMotor->step(1, FORWARD, INTERLEAVE);
+  //          delayMicroseconds(100);
+  //        }
+  //        return true;
+  //      }
+  //    }
+  //    else if(i == 90){
+  //      if(checkForObstacles()){
+  //        for (int j = countSteps; j >= 0; j--){
+  //          leftMotor->step(1, BACKWARD, INTERLEAVE);
+  //          rightMotor->step(1, FORWARD, INTERLEAVE);
+  //          delayMicroseconds(100);
+  //        }
+  //        return true;
+  //      }
+  //    }
+  //    else if(i == 180){
+  //      if(checkForObstacles()){
+  //        for (int j = countSteps; j >= 0; j--){
+  //          leftMotor->step(1, BACKWARD, INTERLEAVE);
+  //          rightMotor->step(1, FORWARD, INTERLEAVE);
+  //          delayMicroseconds(100);
+  //        }
+  //        return true;
+  //      }
+  //    }
+  //  }
   return false;
 }
 
 //Move forward one foot
-void goForward(){
-  for(int i = 0; i < 562; i++){
+void goForward() {
+  for (int i = 0; i < 562; i++) {
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(100);
@@ -579,8 +665,8 @@ void goForward(){
 }
 
 //Move backward one foot
-void goBackward(){
-  for(int i = 0; i < 561; i++){
+void goBackward() {
+  for (int i = 0; i < 562; i++) {
     leftMotor->step(1, BACKWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
     delayMicroseconds(250);
@@ -589,7 +675,7 @@ void goBackward(){
 
 //Temporarily obsolete, keep for robot project 2
 /*//Sweep servo motor from 45 to 135 and back
-void sweepServo(Servo servo){
+  void sweepServo(Servo servo){
   servo.write(90);
   for(int pos = 90; pos <= 135; pos++){
     servo.write(pos);
@@ -603,118 +689,114 @@ void sweepServo(Servo servo){
     servo.write(pos);
     delay(30);
   }
-}*/
+  }*/
 
 
 //Checks for obstacles, returns true if one is found, false otherwise
-bool checkForObstacles(){
-//  Serial.println("object detection function entered");
+bool checkForObstacles() {
+  //  Serial.println("object detection function entered");
   //Tracks # of times an obstacle is detected
   int detected = 0;
 
   //Set servo to 90 degree position
-//  servo.write(90);
+  //servo.write(90);
 
   //Check if obstacle is in the way
   double dist = ultrasonicDistance();
-  if(dist <= 4.0 && dist > 0.0){
-//    Serial.println("OBJECT DETECTED");
+  for (int i = 0; i < 2; i++) {
+    if (dist <= 10.0 && dist > 0.0) {
       detected++;
+    }
+    dist = ultrasonicDistance();
   }
-// Serial.println("here");
-  //Keep commented code for p2
-  /*//Rotate servo from 90 - 115 degrees
-  servo.write(115);
-  delay(100);*/
+  /*//Keep commented code for p2
+    //Rotate servo from 90 - 115 degrees
+    servo.write(115);
+    delay(100);
 
-  //Check if an obstacle is in the way
-//  if(ultrasonicDistance() <= 4){
-//      detected++;
-//  }
-
-  /*//Rotate servo from 115 - 65 degrees
-  servo.write(65);
-  delay(100);
-
-  //Check if obstacle is in the way
-  if(ultrasonicDistance() < 12){
+    //Check if obstacle is in the way
+    dist = ultrasonicDistance();
+    if(dist <= 8.0 && dist > 0.0){
       detected++;
-  }
+    }
 
-  //Rotate servo from 65 back to 90 degrees
-  servo.write(90);
-  delay(100);*/
+    //Rotate servo from 115 - 65 degrees
+    servo.write(65);
+    delay(100);
+
+    //Check if obstacle is in the way
+    dist = ultrasonicDistance();
+    if(dist <= 8.0 && dist > 0.0){
+      detected++;
+    }
+
+    //Rotate servo from 65 back to 90 degrees
+    servo.write(90);
+    delay(100);*/
 
   //If an obstacle has been detected more than once, indicate that there is an obstacle in the path
   bool found = false;
-
   //Since the ultrasonic occasionally produces odd results, this attempts to filter out false hits
-  if(detected > 0){
+  if (detected > 1) {
     found = true;
-//    Serial.println("DETECTED");
+    //    Serial.println("DETECTED");
   }
   return found;
 }
 
 //Returns distance from ultrasonic sensor to nearest obstacle in inches
-double ultrasonicDistance(){
+double ultrasonicDistance() {
   unsigned int uS = sonar.ping_cm();
-  
-//  Serial.print(uS);
-//  Serial.println("cm");
   double inches = uS * 0.393701;
   Serial.println(inches);
   return inches;
-//  Serial.print(inches);
-//  Serial.println("inches");
 }
 
 //At the moment this just checks if the coordinates are equal. For project 2, include photosensor readings.
-bool checkForDestination(int destX, int destY, int srcX, int srcY){
-  if((destX == srcX) && (destY == srcY)){
-    bool atDest = false;
-    for(int i = 0; i < 3; i++){
-       if(photoDetect()){
+bool checkForDestination(int destX, int destY, int srcX, int srcY) {
+  bool atDest = false;
+  if ((destX == srcX) && (destY == srcY)) {
+    /*for (int i = 0; i < 3; i++) {
+      if (photoDetect()) {
         atDest = true;
         Serial.println("Destination found!");
-       }
-    }
-    return atDest;
+      }
+    }*/
   }
-  return false;
+  return atDest;
 }
 
-//Checks photosensor value. Returns true on detection of destination node marked withblack tape
-bool photoDetect(){
+//Checks photosensor value. Returns true on detection of destination node marked with black tape
+bool photoDetect() {
   int photoVal = analogRead(PHOTOPIN);
-  if (countPhoto >= 2 || darkDetected){
+  if (countPhoto >= 2 || darkDetected) {
     Serial.print("Detected: ");
     Serial.println(photoVal);
     darkDetected = true;
     countPhoto = 0;
-    if (photoVal < 8){
+    if (photoVal < 7) {
       countPhoto++;
     }
-    else{
+    else {
       darkDetected = false;
     }
     return true;
   }
-  
-  if(photoVal < 8){
+
+  if (photoVal < 7) {
     countPhoto++;
   }
-  
+
   Serial.print("Not detected: ");
   Serial.println(photoVal);
   return false;
 }
 
 //The most important function
-void dance(){
+void dance() {
   leftMotor->setSpeed(120);
   rightMotor->setSpeed(120);
-  for(int i = 0; i < 100; i++){
+  for (int i = 0; i < 100; i++) {
     leftMotor->step(1, FORWARD, INTERLEAVE);
     rightMotor->step(1, FORWARD, INTERLEAVE);
     delayMicroseconds(250);
@@ -723,7 +805,7 @@ void dance(){
   leftMotor->step(100, BACKWARD, INTERLEAVE);
   rightMotor->step(100, BACKWARD, INTERLEAVE);
   rightMotor->step(100, FORWARD, INTERLEAVE);
-  for(int i = 0; i < 100; i++){
+  for (int i = 0; i < 100; i++) {
     leftMotor->step(1, BACKWARD, INTERLEAVE);
     rightMotor->step(1, BACKWARD, INTERLEAVE);
     delayMicroseconds(250);
